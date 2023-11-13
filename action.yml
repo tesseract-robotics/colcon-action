@@ -1,0 +1,174 @@
+name: colcon-action
+description: Simple action to build workspace using colcon
+inputs:
+  ccache-prefix:
+    description: "CCache key prefix component (optional)"
+    required: false
+    default: ''
+  ccache-enabled:
+    description: "Enable/Disable ccache (optional)"
+    required: false
+    default: 'true'
+  rosdep-enabled:
+    description: "Indicate if rosdep should be used (optional)"
+    required: false
+    default: 'true'
+  ros-enabled:
+    description: "Indicate if ROS PPA should be added (optional)"
+    required: false
+    default: 'false'
+  vcs-file:
+    description: "The relative path to the vcs repos file (optional)"
+    required: false
+    default: ''
+  upstream-args:
+    description: "Additional args to pass to colcon build for upstream workspace (optional)"
+    required: false
+    default: ''
+  target-path:
+    description: "Relative path under $GITHUB_WORKSPACE where the repository was placed (optional)"
+    required: false
+    default: ''
+  target-args:
+    description: "Additional args to pass to colcon build for target workspace (optional)"
+    required: false
+    default: ''
+  run-tests:
+    description: "Indicate if test should be ran"
+    required: false
+    default: 'true'
+runs:
+  using: "composite"
+  steps:
+    - name: Install colcon depends (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        apt update
+        apt upgrade -y
+        apt install -y cmake curl git python3 python3-distutils python3-pip
+        python3 -m pip install vcstool -q
+        python3 -m pip install colcon-common-extensions -q
+
+    - name: Install colcon depends (Windows)
+      if: runner.os == 'Windows'
+      shell: bash
+      run: |
+        python3 -m pip install vcstool -q
+        python3 -m pip install colcon-common-extensions -q
+        python3 -m pip install ninja -q
+
+    - name: Install ROS PPA (Linux)
+      if: inputs.ros-enabled == 'true' && runner.os == 'Linux'
+      shell: bash
+      run: |
+        curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | tee /etc/apt/sources.list.d/ros2.list > /dev/null
+        apt update -qq
+
+    - name: Install rosdep depends
+      if: inputs.rosdep-enabled == 'true' && runner.os == 'Linux'
+      shell: bash
+      run: |
+        python3 -m pip install rosdep -q
+        rosdep init
+        rosdep update
+
+    - name: Install ccache depends
+      if: inputs.ccache-enabled == 'true' && runner.os == 'Linux'
+      shell: bash
+      run: |
+        apt install -y ccache
+
+    - name: Prepare ccache timestamp
+      if: inputs.ccache-enabled == 'true' && runner.os == 'Linux'
+      id: ccache_cache_timestamp
+      shell: cmake -P {0}
+      run: |
+        string(TIMESTAMP current_date "%Y-%m-%d-%H;%M;%S" UTC)
+        message("::set-output name=timestamp::${current_date}")
+
+    - name: Restore cache files
+      if: inputs.ccache-enabled == 'true' && runner.os == 'Linux'
+      continue-on-error: true
+      uses: actions/cache@v1.1.0
+      with:
+        path: ${{ inputs.ccache-prefix }}/.ccache
+        key: ${{ inputs.ccache-prefix }}-ccache-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
+        restore-keys: |
+          ${{ inputs.ccache-prefix }}-ccache-
+
+    - name: Build Upstream Workspace
+      if: inputs.vcs-file != ''
+      shell: bash
+      run: |
+        mkdir -p $GITHUB_WORKSPACE/upstream_ws/src
+        vcs import --input "$GITHUB_WORKSPACE/${{ inputs.target-path }}/${{ inputs.vcs-file }}" $GITHUB_WORKSPACE/upstream_ws/src/
+        if [ $? -ge 1 ]; then return 1; fi
+        cd $GITHUB_WORKSPACE/upstream_ws
+        if [[ "${{ inputs.rosdep-enabled }}" == "true" ]] && [[ "${{ runner.os }}" == "Linux" ]]; then
+          rosdep install --from-paths src --ignore-src -r -y
+        fi
+        if [[ "${{ inputs.ccache-enabled }}" == "true" ]] && [[ "${{ runner.os }}" == "Linux" ]]; then
+          colcon build --event-handlers console_direct+ --cmake-args -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ${{ inputs.upstream-args }}
+        else
+          colcon build --event-handlers console_direct+ --cmake-args ${{ inputs.upstream-args }}
+        fi
+        if [ $? -ge 1 ]; then return 1; fi
+
+    - name: Build Target Workspace (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        if [[ "${{ inputs.vcs-file }}" != "" ]]; then
+          source $GITHUB_WORKSPACE/upstream_ws/install/setup.bash
+        fi
+        cd $GITHUB_WORKSPACE/${{ inputs.target-path }}/../
+        if [[ "${{ inputs.rosdep-enabled }}" == "true" ]]; then
+          rosdep install --from-paths src --ignore-src -r -y
+        fi
+        if [[ "${{ inputs.ccache-enabled }}" == "true" ]]; then
+          colcon build --event-handlers console_direct+ --cmake-args -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ${{ inputs.target-args }}
+        else
+          colcon build --event-handlers console_direct+ --cmake-args ${{ inputs.target-args }}
+        fi
+        if [ $? -ge 1 ]; then return 1; fi
+
+    - name: Build Target Workspace (Windows with Upstream Workspace)
+      if: runner.os == 'Windows' && inputs.vcs-file != ''
+      shell: cmd
+      run: |
+        call %GITHUB_WORKSPACE%\upstream_ws\install\setup.bat
+        cd %GITHUB_WORKSPACE%\${{ inputs.target-path }}\..\
+        colcon build --event-handlers console_direct+ --cmake-args ${{ inputs.target-args }}
+        if %ERRORLEVEL% GEQ 1 exit 1
+
+    - name: Build Target Workspace (Windows without Upstream Workspace)
+      if: runner.os == 'Windows' && inputs.vcs-file == ''
+      shell: cmd
+      run: |
+        cd %GITHUB_WORKSPACE%\${{ inputs.target-path }}\..\
+        colcon build --event-handlers console_direct+ --cmake-args ${{ inputs.target-args }}
+        if %ERRORLEVEL% GEQ 1 exit 1
+
+    - name: Run Tests (Linux)
+      if: inputs.run-tests == 'true' && runner.os == 'Linux'
+      shell: bash
+      run: |
+        cd $GITHUB_WORKSPACE/${{ inputs.target-path }}/../
+        source install/setup.bash
+        colcon test --event-handlers console_direct+ --return-code-on-test-failure
+        if [ $? -ge 1 ]; then return 1; fi
+        colcon test-result --verbose
+        if [ $? -ge 1 ]; then return 1; fi
+
+    - name: Run Tests (Windows)
+      if: inputs.run-tests == 'true' && runner.os == 'Windows'
+      shell: cmd
+      run: |
+        cd %GITHUB_WORKSPACE%\${{ inputs.target-path }}\..\
+        call install\setup.bat
+        colcon test --event-handlers console_direct+ --return-code-on-test-failure
+        if %ERRORLEVEL% GEQ 1 exit 1
+        colcon test-result --verbose
+        if %ERRORLEVEL% GEQ 1 exit 1
