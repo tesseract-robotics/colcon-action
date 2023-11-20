@@ -58,7 +58,7 @@ runs:
       if: runner.os == 'Windows'
       shell: bash
       run: |
-        python3 -m pip install vcstool -q --ignore-installed
+        python3 -m pip install vcstool -q
         python3 -m pip install colcon-common-extensions -q
         python3 -m pip install ninja -q
 
