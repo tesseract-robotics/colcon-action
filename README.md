@@ -27,4 +27,6 @@
     target-args: '--cmake-args -DCMAKE_BUILD_TYPE=Debug'
     # Indicate if test should be ran (optional, default: 'true')
     run-tests: 'true'
+    # Additional args to pass to colcon test for target workspace (optional, default: '')
+    run-tests-args: ''
 ```

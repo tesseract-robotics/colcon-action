@@ -41,6 +41,10 @@ inputs:
     description: "Indicate if test should be ran"
     required: false
     default: 'true'
+  run-tests-args:
+    description: "Additional args to pass to colcon test for target workspace (optional)"
+    required: false
+    default: ''
 runs:
   using: "composite"
   steps:
@@ -171,7 +175,7 @@ runs:
       run: |
         cd $GITHUB_WORKSPACE/${{ inputs.target-path }}/../
         source install/setup.bash
-        colcon test --event-handlers console_direct+ --return-code-on-test-failure
+        colcon test --event-handlers console_direct+ --return-code-on-test-failure ${{ inputs.run-tests-args }}
         if [ $? -ge 1 ]; then return 1; fi
         colcon test-result --verbose
         if [ $? -ge 1 ]; then return 1; fi
@@ -182,7 +186,7 @@ runs:
       run: |
         cd %GITHUB_WORKSPACE%\${{ inputs.target-path }}\..\
         call install\setup.bat
-        colcon test --event-handlers console_direct+ --return-code-on-test-failure
+        colcon test --event-handlers console_direct+ --return-code-on-test-failure ${{ inputs.run-tests-args }}
         if %ERRORLEVEL% GEQ 1 exit 1
         colcon test-result --verbose
         if %ERRORLEVEL% GEQ 1 exit 1
