@@ -5,8 +5,10 @@
 ## Usage
 
 ``` yaml
-- uses: tesseract-robotics/colcon-action@v1
+- uses: tesseract-robotics/colcon-action@v2
   with:
+    # Script that runs before anything else in build steps (optional, default: '')
+    before-script: ''
     # CCache key prefix component (optional, default: '')
     ccache-prefix: ''
     # Enable/Disable ccache (optional, default: 'true')
