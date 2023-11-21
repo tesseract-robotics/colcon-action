@@ -112,9 +112,7 @@ runs:
       if: inputs.vcs-file != ''
       shell: bash
       run: |
-        if [[ "${{ inputs.before-script }}" != "" ]]; then
-          ${{ inputs.before-script }}
-        fi
+        ${{ inputs.before-script }}
         mkdir -p $GITHUB_WORKSPACE/upstream_ws/src
         vcs import --input "$GITHUB_WORKSPACE/${{ inputs.target-path }}/${{ inputs.vcs-file }}" $GITHUB_WORKSPACE/upstream_ws/src/
         if [ $? -ge 1 ]; then return 1; fi
@@ -133,9 +131,7 @@ runs:
       if: runner.os == 'Linux'
       shell: bash
       run: |
-        if [[ "${{ inputs.before-script }}" != "" ]]; then
-          ${{ inputs.before-script }}
-        fi
+        ${{ inputs.before-script }}
         if [[ "${{ inputs.vcs-file }}" != "" ]]; then
           source $GITHUB_WORKSPACE/upstream_ws/install/setup.bash
         fi
@@ -154,7 +150,7 @@ runs:
       if: runner.os == 'Windows' && inputs.vcs-file != ''
       shell: cmd
       run: |
-        if '${{ inputs.before-script }}' NEQ '' ${{ inputs.before-script }}
+        ${{ inputs.before-script }}
         call %GITHUB_WORKSPACE%\upstream_ws\install\setup.bat
         cd %GITHUB_WORKSPACE%\${{ inputs.target-path }}\..\
         colcon build --event-handlers console_direct+ --cmake-args ${{ inputs.target-args }}
@@ -164,7 +160,7 @@ runs:
       if: runner.os == 'Windows' && inputs.vcs-file == ''
       shell: cmd
       run: |
-        if '${{ inputs.before-script }}' NEQ '' ${{ inputs.before-script }}
+        ${{ inputs.before-script }}
         cd %GITHUB_WORKSPACE%\${{ inputs.target-path }}\..\
         colcon build --event-handlers console_direct+ --cmake-args ${{ inputs.target-args }}
         if %ERRORLEVEL% GEQ 1 exit 1
