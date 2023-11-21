@@ -113,7 +113,7 @@ runs:
       shell: bash
       run: |
         if [[ "${{ inputs.before-script }}" != "" ]]; then
-          ${{ inputs.before-script }}
+          ${{ inputs.before-script }};
         fi
         mkdir -p $GITHUB_WORKSPACE/upstream_ws/src
         vcs import --input "$GITHUB_WORKSPACE/${{ inputs.target-path }}/${{ inputs.vcs-file }}" $GITHUB_WORKSPACE/upstream_ws/src/
@@ -134,7 +134,7 @@ runs:
       shell: bash
       run: |
         if [[ "${{ inputs.before-script }}" != "" ]]; then
-          ${{ inputs.before-script }}
+          ${{ inputs.before-script }};
         fi
         if [[ "${{ inputs.vcs-file }}" != "" ]]; then
           source $GITHUB_WORKSPACE/upstream_ws/install/setup.bash
