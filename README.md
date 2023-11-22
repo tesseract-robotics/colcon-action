@@ -5,7 +5,7 @@
 ## Usage
 
 ``` yaml
-- uses: tesseract-robotics/colcon-action@v2
+- uses: tesseract-robotics/colcon-action@v4
   with:
     # Script that runs before anything else in build steps (optional, default: '')
     before-script: ''
