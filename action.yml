@@ -82,7 +82,7 @@ runs:
         if ! [ -d /etc/ros/rosdep/sources.list.d ]; then
           rosdep init
         fi
-        rosdep update
+        rosdep update --include-eol-distros
 
     - name: Install ccache depends
       if: inputs.ccache-enabled == 'true' && runner.os == 'Linux'
