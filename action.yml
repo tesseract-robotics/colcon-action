@@ -121,9 +121,9 @@ runs:
           rosdep install --from-paths src --ignore-src -r -y
         fi
         if [[ "${{ inputs.ccache-enabled }}" == "true" ]] && [[ "${{ runner.os }}" == "Linux" ]]; then
-          colcon build --event-handlers console_direct+ --cmake-args -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ${{ inputs.upstream-args }}
+          colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ${{ inputs.upstream-args }}
         else
-          colcon build --event-handlers console_direct+ --cmake-args ${{ inputs.upstream-args }}
+          colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args ${{ inputs.upstream-args }}
         fi
         if [ $? -ge 1 ]; then return 1; fi
 
