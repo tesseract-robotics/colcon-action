@@ -144,9 +144,9 @@ runs:
           rosdep install --from-paths src --ignore-src -r -y
         fi
         if [[ "${{ inputs.ccache-enabled }}" == "true" ]]; then
-          colcon build --event-handlers console_direct+ --cmake-args -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ${{ inputs.target-args }}
+          colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ${{ inputs.target-args }}
         else
-          colcon build --event-handlers console_direct+ --cmake-args ${{ inputs.target-args }}
+          colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args ${{ inputs.target-args }}
         fi
         if [ $? -ge 1 ]; then return 1; fi
 
@@ -157,7 +157,7 @@ runs:
         ${{ inputs.before-script }}
         call %GITHUB_WORKSPACE%\upstream_ws\install\setup.bat
         cd %GITHUB_WORKSPACE%\${{ inputs.target-path }}\..\
-        colcon build --event-handlers console_direct+ --cmake-args ${{ inputs.target-args }}
+        colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args ${{ inputs.target-args }}
         if %ERRORLEVEL% GEQ 1 exit 1
 
     - name: Build Target Workspace (Windows without Upstream Workspace)
@@ -166,7 +166,7 @@ runs:
       run: |
         ${{ inputs.before-script }}
         cd %GITHUB_WORKSPACE%\${{ inputs.target-path }}\..\
-        colcon build --event-handlers console_direct+ --cmake-args ${{ inputs.target-args }}
+        colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args ${{ inputs.target-args }}
         if %ERRORLEVEL% GEQ 1 exit 1
 
     - name: Run Tests (Linux)
