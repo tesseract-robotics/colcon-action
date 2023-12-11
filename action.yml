@@ -17,6 +17,10 @@ inputs:
     description: "Indicate if rosdep should be used (optional)"
     required: false
     default: 'true'
+  rosdep-install-args:
+    description: "Additional args to pass to rosdep install (optional)"
+    required: false
+    default: '-r'
   ros-enabled:
     description: "Indicate if ROS PPA should be added (optional)"
     required: false
@@ -118,7 +122,7 @@ runs:
         if [ $? -ge 1 ]; then return 1; fi
         cd $GITHUB_WORKSPACE/upstream_ws
         if [[ "${{ inputs.rosdep-enabled }}" == "true" ]] && [[ "${{ runner.os }}" == "Linux" ]]; then
-          rosdep install --from-paths src --ignore-src -r -y
+          rosdep install --from-paths src --ignore-src -y ${{ inputs.rosdep-install-args }}
         fi
         if [[ "${{ inputs.ccache-enabled }}" == "true" ]] && [[ "${{ runner.os }}" == "Linux" ]]; then
           colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ${{ inputs.upstream-args }}
