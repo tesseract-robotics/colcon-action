@@ -122,6 +122,7 @@ runs:
         if [ $? -ge 1 ]; then return 1; fi
         cd $GITHUB_WORKSPACE/upstream_ws
         if [[ "${{ inputs.rosdep-enabled }}" == "true" ]] && [[ "${{ runner.os }}" == "Linux" ]]; then
+          apt update -y -qq
           rosdep install --from-paths src -iry ${{ inputs.rosdep-install-args }}
         fi
         if [[ "${{ inputs.ccache-enabled }}" == "true" ]] && [[ "${{ runner.os }}" == "Linux" ]]; then
@@ -141,6 +142,7 @@ runs:
         fi
         cd $GITHUB_WORKSPACE/${{ inputs.target-path }}/../
         if [[ "${{ inputs.rosdep-enabled }}" == "true" ]]; then
+          apt update -y -qq
           rosdep install --from-paths src -iry ${{ inputs.rosdep-install-args }}
         fi
         if [[ "${{ inputs.ccache-enabled }}" == "true" ]]; then
