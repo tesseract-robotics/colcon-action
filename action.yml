@@ -58,9 +58,7 @@ runs:
       run: |
         apt update
         apt upgrade -y
-        apt install -y cmake curl git python3 python3-pip
-        python3 -m pip install vcstool -q
-        python3 -m pip install colcon-common-extensions -q
+        apt install -y cmake curl git python3-vcstool python3-colcon-common-extensions
 
     - name: Install colcon depends (Windows)
       if: runner.os == 'Windows'
