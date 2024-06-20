@@ -59,16 +59,16 @@ runs:
         apt update
         apt upgrade -y
         apt install -y cmake curl git python3 python3-pip
-        python3 -m pip --user install vcstool -q
-        python3 -m pip --user install colcon-common-extensions -q
+        pip install --user -q vcstool
+        pip install --user -q colcon-common-extensions
 
     - name: Install colcon depends (Windows)
       if: runner.os == 'Windows'
       shell: bash
       run: |
-        python3 -m pip --user install vcstool -q
-        python3 -m pip --user install colcon-common-extensions -q
-        python3 -m pip --user install ninja -q
+        pip install --user -q vcstool
+        pip install --user -q colcon-common-extensions
+        pip install --user -q ninja
 
     - name: Install ROS PPA (Linux)
       if: inputs.ros-enabled == 'true' && runner.os == 'Linux'
@@ -82,7 +82,7 @@ runs:
       if: inputs.rosdep-enabled == 'true' && runner.os == 'Linux'
       shell: bash
       run: |
-        python3 -m pip --user install rosdep -q
+        pip install --user -q rosdep
         if ! [ -d /etc/ros/rosdep/sources.list.d ]; then
           rosdep init
         fi
