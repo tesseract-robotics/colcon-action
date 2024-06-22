@@ -68,26 +68,27 @@ runs:
         python3 -m pip install colcon-common-extensions -q
         python3 -m pip install ninja -q
 
-    - name: Install ROS PPA (Linux)
-      if: inputs.ros-enabled == 'true' && runner.os == 'Linux'
+    - name: Install ROS/Colcon PPA (Linux)
+      if: runner.os == 'Linux'
       shell: bash
       run: |
         curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
         echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | tee /etc/apt/sources.list.d/ros2.list > /dev/null
         apt update -y -qq
 
-    - name: Install ROS infrastructure dependencies (Linux)
+    - name: Install colcon depends (Linux)
       if: runner.os == 'Linux'
       shell: bash
       run: |
         apt update -y -qq
         apt upgrade -y -qq
-        apt install -y -qq python3-vcstool python3-colcon-common-extensions python3-rosdep
-
+        apt install -y -qq python3-vcstool python3-colcon-common-extensions
+        
     - name: Install rosdep depends
       if: inputs.rosdep-enabled == 'true' && runner.os == 'Linux'
       shell: bash
       run: |
+        apt install -y -qq python3-rosdep
         if ! [ -d /etc/ros/rosdep/sources.list.d ]; then
           rosdep init
         fi
