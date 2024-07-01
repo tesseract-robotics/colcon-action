@@ -5,7 +5,7 @@
 ## Usage
 
 ``` yaml
-- uses: tesseract-robotics/colcon-action@v5
+- uses: tesseract-robotics/colcon-action@v8
   with:
     # Script that runs before anything else in build steps (optional, default: '')
     before-script: ''
@@ -17,8 +17,6 @@
     rosdep-enabled: 'true'
     # Additional args to pass to rosdep install (optional, default: '-r')
     rosdep-install-args: '-r'
-    # Indicate if ROS PPA should be added (optional, default: 'false')
-    ros-enabled: 'false'
     # The relative path to the vcs repos file (optional, default: '')
     vcs-file: 'dependencies.repos'
     # Additional args to pass to colcon build for upstream workspace (optional, default: '')
