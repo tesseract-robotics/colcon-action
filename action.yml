@@ -24,7 +24,7 @@ inputs:
   add-ros-ppa:
     description: "Indicate if ROS PPA should be added (optional)"
     required: false
-    default: 'false'
+    default: 'true'
   vcs-file:
     description: "The relative path to the vcs repos file (optional)"
     required: false
