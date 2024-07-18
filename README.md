@@ -17,8 +17,10 @@
     rosdep-enabled: 'true'
     # Additional args to pass to rosdep install (optional, default: '-r')
     rosdep-install-args: '-r'
-    # Indicate if ROS PPA should be added (optional, default: 'false')
-    ros-enabled: 'false'
+    # Indicate if ROS PPA should be added (optional, default: 'false').
+    # The ROS PPA must be added if the Linux OS on which this action runs does not already contain a ROS distro.
+    # The ROS PPA should not be added if the Linux OS already contains a ROS distro (e.g., ROS Docker image)
+    add-ros-ppa: 'false'
     # The relative path to the vcs repos file (optional, default: '')
     vcs-file: 'dependencies.repos'
     # Additional args to pass to colcon build for upstream workspace (optional, default: '')
