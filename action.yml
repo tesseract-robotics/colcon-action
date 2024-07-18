@@ -69,7 +69,7 @@ runs:
         python3 -m pip install ninja -q
 
     - name: Install ROS/Colcon PPA (Linux)
-      if: runner.os == 'Linux'
+      if: inputs.ros-enabled == 'true' && runner.os == 'Linux'
       shell: bash
       run: |
         curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
