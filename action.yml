@@ -21,6 +21,10 @@ inputs:
     description: "Additional args to pass to rosdep install (optional)"
     required: false
     default: '-r'
+  ros-enabled:
+    description: "Indicate if ROS PPA should be added (optional)"
+    required: false
+    default: 'false'
   vcs-file:
     description: "The relative path to the vcs repos file (optional)"
     required: false
