@@ -21,6 +21,10 @@ inputs:
     description: "Additional args to pass to rosdep install (optional)"
     required: false
     default: '-r'
+  add-ros-ppa:
+    description: "Indicate if ROS PPA should be added (optional)"
+    required: false
+    default: 'true'
   vcs-file:
     description: "The relative path to the vcs repos file (optional)"
     required: false
@@ -65,7 +69,7 @@ runs:
         python3 -m pip install ninja -q
 
     - name: Install ROS/Colcon PPA (Linux)
-      if: runner.os == 'Linux'
+      if: inputs.add-ros-ppa == 'true' && runner.os == 'Linux'
       shell: bash
       run: |
         curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
