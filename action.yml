@@ -21,7 +21,7 @@ inputs:
     description: "Additional args to pass to rosdep install (optional)"
     required: false
     default: '-r'
-  ros-enabled:
+  add-ros-ppa:
     description: "Indicate if ROS PPA should be added (optional)"
     required: false
     default: 'false'
@@ -69,7 +69,7 @@ runs:
         python3 -m pip install ninja -q
 
     - name: Install ROS/Colcon PPA (Linux)
-      if: inputs.ros-enabled == 'true' && runner.os == 'Linux'
+      if: inputs.add-ros-ppa == 'true' && runner.os == 'Linux'
       shell: bash
       run: |
         curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
