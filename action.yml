@@ -111,7 +111,7 @@ runs:
     - name: Restore cache files
       if: inputs.ccache-enabled == 'true' && runner.os == 'Linux'
       continue-on-error: true
-      uses: actions/cache@v1.1.0
+      uses: actions/cache@v4
       with:
         path: ${{ inputs.ccache-prefix }}/.ccache
         key: ${{ inputs.ccache-prefix }}-ccache-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
