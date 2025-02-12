@@ -5,7 +5,7 @@
 ## Usage
 
 ``` yaml
-- uses: tesseract-robotics/colcon-action@v9
+- uses: tesseract-robotics/colcon-action@v11
   with:
     # Script that runs before anything else in build steps (optional, default: '')
     before-script: ''
@@ -16,7 +16,7 @@
     # Indicate if rosdep should be used (optional, default: 'true')
     rosdep-enabled: 'true'
     # Additional args to pass to rosdep install (optional, default: '-r')
-    rosdep-install-args: '-r'
+    rosdep-install-args: '-iry'
     # Indicate if ROS PPA should be added (optional, default: 'false').
     # The ROS PPA must be added if the Linux OS on which this action runs does not already contain a ROS distro.
     # The ROS PPA should not be added if the Linux OS already contains a ROS distro (e.g., ROS Docker image)
