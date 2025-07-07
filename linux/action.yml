@@ -1,0 +1,120 @@
+name: colcon-action (linux)
+description: Linux build of a colcon workspace
+inputs:
+  before-script:        { required: false, default: '' }
+  ccache-prefix:        { required: false, default: '' }
+  ccache-enabled:       { required: false, default: 'true' }
+  rosdep-enabled:       { required: false, default: 'true' }
+  rosdep-install-args:  { required: false, default: '-iry' }
+  add-ros-ppa:          { required: false, default: 'true' }
+  vcs-file:             { required: false, default: '' }
+  upstream-args:        { required: false, default: '' }
+  target-path:          { required: false, default: '' }
+  target-args:          { required: false, default: '' }
+  run-tests:            { required: false, default: 'true' }
+  run-tests-args:       { required: false, default: '' }
+
+runs:
+  using: composite
+  steps:
+    - name: Install base deps
+      shell: bash
+      run: |
+        apt update -y -qq
+        apt install -y cmake curl git python3 python3-pip
+
+    - name: Install ROS/Colcon PPA
+      if: inputs.add-ros-ppa == 'true'
+      shell: bash
+      run: |
+        apt update -y -qq
+        apt install -y -qq curl
+        export ROS_APT_SOURCE_VERSION=$(curl -s https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest | grep -F "tag_name" | awk -F\" '{print $4}')
+        curl -L -o /tmp/ros2-apt-source.deb "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ROS_APT_SOURCE_VERSION}/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.$(. /etc/os-release && echo $VERSION_CODENAME)_all.deb"
+        apt install -y /tmp/ros2-apt-source.deb
+
+    - name: Install colcon deps
+      shell: bash
+      run: |
+        apt update -y -qq
+        apt install -y -qq python3-vcstool python3-colcon-common-extensions
+
+    - name: rosdep init & update
+      if: inputs.rosdep-enabled == 'true'
+      shell: bash
+      run: |
+        apt install -y -qq python3-rosdep
+        if [ ! -d /etc/ros/rosdep/sources.list.d ]; then rosdep init; fi
+        rosdep update --include-eol-distros
+
+    - name: Install ccache
+      if: inputs.ccache-enabled == 'true'
+      shell: bash
+      run: apt install -y -qq ccache
+
+    - name: Prepare ccache timestamp
+      if: inputs.ccache-enabled == 'true'
+      id: ccache_timestamp
+      shell: cmake -P {0}
+      run: |
+        string(TIMESTAMP current_date "%Y-%m-%d-%H;%M;%S" UTC)
+        message("::set-output name=timestamp::${current_date}")
+
+    - name: Restore cache
+      if: inputs.ccache-enabled == 'true'
+      uses: actions/cache@v4
+      with:
+        path: ${{ inputs.ccache-prefix }}/.ccache
+        key:   ${{ inputs.ccache-prefix }}-linux-ccache-${{ steps.ccache_timestamp.outputs.timestamp }}
+        restore-keys: |
+          ${{ inputs.ccache-prefix }}-linux-ccache-
+
+    - name: Build upstream workspace
+      if: inputs.vcs-file != ''
+      shell: bash
+      run: |
+        ${{ inputs.before-script }}
+        mkdir -p $GITHUB_WORKSPACE/upstream_ws/src
+        vcs import --input "$GITHUB_WORKSPACE/${{ inputs.target-path }}/${{ inputs.vcs-file }}" $GITHUB_WORKSPACE/upstream_ws/src
+        if [ $? -ge 1 ]; then return 1; fi
+        cd $GITHUB_WORKSPACE/upstream_ws
+        if [ "${{ inputs.rosdep-enabled }}" = "true" ]; then
+          apt update -y -qq
+          rosdep install --from-paths src ${{ inputs.rosdep-install-args }}
+        fi
+        if [ "${{ inputs.ccache-enabled }}" = "true" ]; then
+          colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ${{ inputs.upstream-args }}
+        else
+          colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args ${{ inputs.upstream-args }}
+        fi
+        if [ $? -ge 1 ]; then return 1; fi
+
+    - name: Build target workspace
+      shell: bash
+      run: |
+        ${{ inputs.before-script }}
+        if [ "${{ inputs.vcs-file }}" != "" ]; then
+          source $GITHUB_WORKSPACE/upstream_ws/install/setup.bash
+        fi
+        cd $GITHUB_WORKSPACE/${{ inputs.target-path }}/../
+        if [ "${{ inputs.rosdep-enabled }}" = "true" ]; then
+          apt update -y -qq
+          rosdep install --from-paths src ${{ inputs.rosdep-install-args }}
+        fi
+        if [ "${{ inputs.ccache-enabled }}" = "true" ]; then
+          colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ${{ inputs.target-args }}
+        else
+          colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args ${{ inputs.target-args }}
+        fi
+        if [ $? -ge 1 ]; then return 1; fi
+
+    - name: Run tests
+      if: inputs.run-tests == 'true'
+      shell: bash
+      run: |
+        cd $GITHUB_WORKSPACE/${{ inputs.target-path }}/../
+        source install/setup.bash
+        colcon test --event-handlers console_direct+ --return-code-on-test-failure ${{ inputs.run-tests-args }}
+        if [ $? -ge 1 ]; then return 1; fi
+        colcon test-result --verbose
+        if [ $? -ge 1 ]; then return 1; fi

@@ -1,0 +1,160 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  # ──────────────────────────────────────────────────────────────────────────────
+  # Linux in a container
+  build-linux:
+    name: Linux
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:latest
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v4
+
+      - name: Setup Docker tools
+        run: apt update && apt install -y git
+
+      - name: Clone boost_plugin_loader
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/target_ws/src
+          cd $GITHUB_WORKSPACE/target_ws/src
+          git clone https://github.com/tesseract-robotics/boost_plugin_loader.git
+
+      - name: Run colcon-action (Linux)
+        uses: ./
+        with:
+          ccache-enabled:  false
+          rosdep-enabled:  true
+          upstream-args:   --cmake-args -DCMAKE_BUILD_TYPE=Release
+          vcs-file:        boost_plugin_loader/dependencies.repos
+          target-path:     target_ws/src
+          target-args:     --cmake-args -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+          run-tests:       true
+          run-tests-args:  ''
+
+      - name: Success
+        run: echo "✅ boost_plugin_loader built on Linux container"
+
+  # ──────────────────────────────────────────────────────────────────────────────
+  # macOS on the hosted runner
+  build-macos:
+    name: macOS
+    runs-on: macos-14
+    env:
+      VCPKG_PKGS: boost-dll boost-filesystem boost-algorithm boost-smart-ptr gtest
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v4
+
+      - name: vcpkg build
+        uses: johnwason/vcpkg-action@v7
+        id: vcpkg
+        with:
+          pkgs: ${{ env.VCPKG_PKGS }}
+          triplet: arm64-osx-release
+          cache-key: build-macos-14
+          token: ${{ github.token }}
+
+      - name: install-depends
+        shell: bash
+        run: |
+          python3 -m pip install vcstool --break-system-packages -q
+          python3 -m pip install colcon-common-extensions --break-system-packages -q
+
+      - name: update environment
+        shell: bash
+        run: |
+          echo "DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:$GITHUB_WORKSPACE/vcpkg/installed/arm64-osx-release/lib" >> "$GITHUB_ENV"
+          echo "CMAKE_PREFIX_PATH=$GITHUB_WORKSPACE\vcpkg\installed\arm64-osx-release" >> "$GITHUB_ENV"
+
+      - name: Clone boost_plugin_loader
+        shell: bash
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/target_ws/src
+          cd $GITHUB_WORKSPACE/target_ws/src
+          git clone https://github.com/tesseract-robotics/boost_plugin_loader.git
+
+      - name: Run colcon-action (macOS)
+        uses: ./
+        with:
+          ccache-enabled:  false
+          rosdep-enabled:  true
+          upstream-args:   --cmake-args -G "Ninja" -DVCPKG_TARGET_TRIPLET=arm64-osx-release -DCMAKE_BUILD_TYPE=Release
+          vcs-file:        boost_plugin_loader/dependencies.repos
+          target-path:     target_ws/src
+          target-args:     --cmake-args -G "Ninja" -DVCPKG_TARGET_TRIPLET=arm64-osx-release -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+          run-tests:       true
+          run-tests-args:  ''
+
+      - name: Success
+        run: echo "✅ boost_plugin_loader built on macOS"
+        shell: bash
+
+  # ──────────────────────────────────────────────────────────────────────────────
+  # Windows on the hosted runner
+  build-windows:
+    name: Windows
+    runs-on: windows-2022
+    env:
+      VCPKG_PKGS: boost-dll boost-filesystem boost-algorithm boost-smart-ptr gtest
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v4
+
+      - name: configure-msvc
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: vcpkg build
+        uses: johnwason/vcpkg-action@v7
+        id: vcpkg
+        with:
+          pkgs: ${{ env.VCPKG_PKGS }}
+          triplet: x64-windows-release
+          cache-key: build-windows-2022
+          token: ${{ github.token }}
+
+      - name: install-depends
+        shell: cmd
+        run: |
+          python -m pip install vcstool -q
+          python -m pip install colcon-common-extensions -q
+          python -m pip install ninja -q
+
+      - name: update environment
+        shell: bash
+        run: |
+          echo "PATH=${{ env.PATH }};$GITHUB_WORKSPACE\vcpkg\installed\x64-windows-release\bin" >> "$GITHUB_ENV"
+          echo "CMAKE_PREFIX_PATH=$GITHUB_WORKSPACE\vcpkg\installed\x64-windows-release" >> "$GITHUB_ENV"
+
+      - name: Clone boost_plugin_loader
+        shell: bash
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/target_ws/src
+          cd $GITHUB_WORKSPACE/target_ws/src
+          git clone https://github.com/tesseract-robotics/boost_plugin_loader.git
+
+      - name: Run colcon-action (Windows)
+        uses: ./
+        with:
+          ccache-enabled:  false
+          rosdep-enabled:  true
+          upstream-args:   --cmake-args -G "Ninja" -DVCPKG_TARGET_TRIPLET=x64-windows-release -DCMAKE_BUILD_TYPE=Release
+          vcs-file:        boost_plugin_loader/dependencies.repos
+          target-path:     target_ws/src
+          target-args:     --cmake-args -G "Ninja" -DVCPKG_TARGET_TRIPLET=x64-windows-release -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+          run-tests:       true
+          run-tests-args:  ''
+
+      - name: Success
+        run: echo "✅ boost_plugin_loader built on Windows"
+        shell: bash
+
+

@@ -1,5 +1,6 @@
 name: colcon-action
-description: Simple action to build workspace using colcon
+description: Simple action to build a colcon workspace
+
 inputs:
   before-script:
     description: "Script that runs before anything else in build steps"
@@ -42,254 +43,64 @@ inputs:
     required: false
     default: ''
   run-tests:
-    description: "Indicate if test should be ran"
+    description: "Indicate if tests should be run"
     required: false
     default: 'true'
   run-tests-args:
-    description: "Additional args to pass to colcon test for target workspace (optional)"
+    description: "Additional args to pass to colcon test (optional)"
     required: false
     default: ''
+
 runs:
-  using: "composite"
+  using: composite
   steps:
-    - name: Install base dependencies (Linux)
+    - name: Build on Linux
       if: runner.os == 'Linux'
-      shell: bash
-      run: |
-        apt update -y -qq
-        apt upgrade -y
-        apt install -y cmake curl git python3 python3-pip
-    
-    - name: Install base dependencies (macOS)
-      if: runner.os == 'macOS'
-      shell: bash
-      run: |
-        brew update
-        brew install cmake curl git python3
+      uses: ./linux
+      with:
+        before-script:       ${{ inputs.before-script }}
+        ccache-prefix:       ${{ inputs.ccache-prefix }}
+        ccache-enabled:      ${{ inputs.ccache-enabled }}
+        rosdep-enabled:      ${{ inputs.rosdep-enabled }}
+        rosdep-install-args: ${{ inputs.rosdep-install-args }}
+        add-ros-ppa:         ${{ inputs.add-ros-ppa }}
+        vcs-file:            ${{ inputs.vcs-file }}
+        upstream-args:       ${{ inputs.upstream-args }}
+        target-path:         ${{ inputs.target-path }}
+        target-args:         ${{ inputs.target-args }}
+        run-tests:           ${{ inputs.run-tests }}
+        run-tests-args:      ${{ inputs.run-tests-args }}
 
-    - name: Install colcon depends (Windows)
+    - name: Build on macOS
+      if: runner.os == 'macOS'
+      uses: ./macos
+      with:
+        before-script:       ${{ inputs.before-script }}
+        ccache-prefix:       ${{ inputs.ccache-prefix }}
+        ccache-enabled:      ${{ inputs.ccache-enabled }}
+        rosdep-enabled:      ${{ inputs.rosdep-enabled }}
+        rosdep-install-args: ${{ inputs.rosdep-install-args }}
+        add-ros-ppa:         ${{ inputs.add-ros-ppa }}
+        vcs-file:            ${{ inputs.vcs-file }}
+        upstream-args:       ${{ inputs.upstream-args }}
+        target-path:         ${{ inputs.target-path }}
+        target-args:         ${{ inputs.target-args }}
+        run-tests:           ${{ inputs.run-tests }}
+        run-tests-args:      ${{ inputs.run-tests-args }}
+
+    - name: Build on Windows
       if: runner.os == 'Windows'
-      shell: bash
-      run: |
-        python3 -m pip install vcstool -q
-        python3 -m pip install colcon-common-extensions -q
-        python3 -m pip install ninja -q
-
-    - name: Install ROS/Colcon PPA (Linux)
-      if: inputs.add-ros-ppa == 'true' && runner.os == 'Linux'
-      shell: bash
-      run: |
-        apt update -y -qq
-        apt install curl -y -qq
-        export ROS_APT_SOURCE_VERSION=$(curl -s https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest | grep -F "tag_name" | awk -F\" '{print $4}')
-        curl -L -o /tmp/ros2-apt-source.deb "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ROS_APT_SOURCE_VERSION}/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.$(. /etc/os-release && echo $VERSION_CODENAME)_all.deb" # If using Ubuntu derivates use $UBUNTU_CODENAME
-        apt install /tmp/ros2-apt-source.deb
-
-    - name: Install colcon depends (Linux)
-      if: runner.os == 'Linux'
-      shell: bash
-      run: |
-        apt update -y -qq
-        apt upgrade -y -qq
-        apt install -y -qq python3-vcstool python3-colcon-common-extensions
-        
-    - name: Install rosdep depends
-      if: inputs.rosdep-enabled == 'true' && runner.os == 'Linux'
-      shell: bash
-      run: |
-        apt install -y -qq python3-rosdep
-        if ! [ -d /etc/ros/rosdep/sources.list.d ]; then
-          rosdep init
-        fi
-        rosdep update --include-eol-distros
-
-    - name: Install ccache depends
-      if: inputs.ccache-enabled == 'true' && runner.os == 'Linux'
-      shell: bash
-      run: |
-        apt install -y ccache
-
-    - name: Install colcon depends (macOS)
-      if: runner.os == 'macOS'
-      shell: bash
-      run: |
-        python3 -m pip install vcstool colcon-common-extensions ninja --break-system-packages
-    
-    - name: Install rosdep depends (macOS)
-      if: inputs.rosdep-enabled == 'true' && runner.os == 'macOS'
-      shell: bash
-      run: |
-        python3 -m pip install rosdep --break-system-packages
-        sudo rosdep init || true
-        rosdep update --include-eol-distros
-
-    - name: Install ccache depends (macOS)
-      if: inputs.ccache-enabled == 'true' && runner.os == 'macOS'
-      shell: bash
-      run: |
-        brew install ccache
-
-    - name: Prepare ccache timestamp
-      if: inputs.ccache-enabled == 'true' && runner.os == 'Linux'
-      id: ccache_cache_timestamp
-      shell: cmake -P {0}
-      run: |
-        string(TIMESTAMP current_date "%Y-%m-%d-%H;%M;%S" UTC)
-        message("::set-output name=timestamp::${current_date}")
-
-    - name: Restore cache files
-      if: inputs.ccache-enabled == 'true' && runner.os == 'Linux'
-      continue-on-error: true
-      uses: actions/cache@v4
+      uses: ./windows
       with:
-        path: ${{ inputs.ccache-prefix }}/.ccache
-        key: ${{ inputs.ccache-prefix }}-ccache-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
-        restore-keys: |
-          ${{ inputs.ccache-prefix }}-ccache-
-
-    - name: Prepare ccache timestamp (macOS)
-      if: inputs.ccache-enabled == 'true' && runner.os == 'macOS'
-      id: ccache_cache_timestamp_macos
-      shell: bash
-      run: |
-        date -u +"::set-output name=timestamp::%Y-%m-%d-%H;%M;%S"
-
-    - name: Restore cache files (macOS)
-      if: inputs.ccache-enabled == 'true' && runner.os == 'macOS'
-      continue-on-error: true
-      uses: actions/cache@v4
-      with:
-        path: ${{ inputs.ccache-prefix }}/.ccache
-        key: ${{ inputs.ccache-prefix }}-macosccache-${{ steps.ccache_cache_timestamp_macos.outputs.timestamp }}
-        restore-keys: |
-          ${{ inputs.ccache-prefix }}-macosccache-
-
-    - name: Build Upstream Workspace
-      if: inputs.vcs-file != ''
-      shell: bash
-      run: |
-        ${{ inputs.before-script }}
-        mkdir -p $GITHUB_WORKSPACE/upstream_ws/src
-        vcs import --input "$GITHUB_WORKSPACE/${{ inputs.target-path }}/${{ inputs.vcs-file }}" $GITHUB_WORKSPACE/upstream_ws/src/
-        if [ $? -ge 1 ]; then return 1; fi
-        cd $GITHUB_WORKSPACE/upstream_ws
-        if [[ "${{ inputs.rosdep-enabled }}" == "true" ]] && [[ "${{ runner.os }}" == "Linux" ]]; then
-          apt update -y -qq
-          rosdep install --from-paths src ${{ inputs.rosdep-install-args }}
-        fi
-        if [[ "${{ inputs.ccache-enabled }}" == "true" ]] && [[ "${{ runner.os }}" == "Linux" ]]; then
-          colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ${{ inputs.upstream-args }}
-        else
-          colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args ${{ inputs.upstream-args }}
-        fi
-        if [ $? -ge 1 ]; then return 1; fi
-
-    - name: Build Target Workspace (Linux)
-      if: runner.os == 'Linux'
-      shell: bash
-      run: |
-        ${{ inputs.before-script }}
-        if [[ "${{ inputs.vcs-file }}" != "" ]]; then
-          source $GITHUB_WORKSPACE/upstream_ws/install/setup.bash
-        fi
-        cd $GITHUB_WORKSPACE/${{ inputs.target-path }}/../
-        if [[ "${{ inputs.rosdep-enabled }}" == "true" ]]; then
-          apt update -y -qq
-          rosdep install --from-paths src ${{ inputs.rosdep-install-args }}
-        fi
-        if [[ "${{ inputs.ccache-enabled }}" == "true" ]]; then
-          colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ${{ inputs.target-args }}
-        else
-          colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args ${{ inputs.target-args }}
-        fi
-        if [ $? -ge 1 ]; then return 1; fi
-
-    - name: Build Target Workspace (Windows with Upstream Workspace)
-      if: runner.os == 'Windows' && inputs.vcs-file != ''
-      shell: cmd
-      run: |
-        ${{ inputs.before-script }}
-        call %GITHUB_WORKSPACE%\upstream_ws\install\setup.bat
-        cd %GITHUB_WORKSPACE%\${{ inputs.target-path }}\..\
-        colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args ${{ inputs.target-args }}
-        if %ERRORLEVEL% GEQ 1 exit 1
-
-    - name: Build Target Workspace (Windows without Upstream Workspace)
-      if: runner.os == 'Windows' && inputs.vcs-file == ''
-      shell: cmd
-      run: |
-        ${{ inputs.before-script }}
-        cd %GITHUB_WORKSPACE%\${{ inputs.target-path }}\..\
-        colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args ${{ inputs.target-args }}
-        if %ERRORLEVEL% GEQ 1 exit 1
-
-    - name: Run Tests (Linux)
-      if: inputs.run-tests == 'true' && runner.os == 'Linux'
-      shell: bash
-      run: |
-        cd $GITHUB_WORKSPACE/${{ inputs.target-path }}/../
-        source install/setup.bash
-        colcon test --event-handlers console_direct+ --return-code-on-test-failure ${{ inputs.run-tests-args }}
-        if [ $? -ge 1 ]; then return 1; fi
-        colcon test-result --verbose
-        if [ $? -ge 1 ]; then return 1; fi
-
-    - name: Run Tests (Windows)
-      if: inputs.run-tests == 'true' && runner.os == 'Windows'
-      shell: cmd
-      run: |
-        cd %GITHUB_WORKSPACE%\${{ inputs.target-path }}\..\
-        call install\setup.bat
-        colcon test --event-handlers console_direct+ --return-code-on-test-failure ${{ inputs.run-tests-args }}
-        if %ERRORLEVEL% GEQ 1 exit 1
-        colcon test-result --verbose
-        if %ERRORLEVEL% GEQ 1 exit 1
-
-    - name: Build Upstream Workspace (macOS)
-      if: runner.os == 'macOS' && inputs.vcs-file != ''
-      shell: bash
-      run: |
-        ${{ inputs.before-script }}
-        mkdir -p $GITHUB_WORKSPACE/upstream_ws/src
-        vcs import --input "$GITHUB_WORKSPACE/${{ inputs.target-path }}/${{ inputs.vcs-file }}" $GITHUB_WORKSPACE/upstream_ws/src/
-        if [ $? -ge 1 ]; then return 1; fi
-        cd $GITHUB_WORKSPACE/upstream_ws
-        if [[ "${{ inputs.rosdep-enabled }}" == "true" ]]; then
-          rosdep install --from-paths src ${{ inputs.rosdep-install-args }}
-        fi
-        if [[ "${{ inputs.ccache-enabled }}" == "true" ]]; then
-          colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ${{ inputs.upstream-args }}
-        else
-          colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args ${{ inputs.upstream-args }}
-        fi
-        if [ $? -ge 1 ]; then return 1; fi
-
-    - name: Build Target Workspace (macOS)
-      if: runner.os == 'macOS'
-      shell: bash
-      run: |
-        ${{ inputs.before-script }}
-        if [[ "${{ inputs.vcs-file }}" != "" ]]; then
-          source $GITHUB_WORKSPACE/upstream_ws/install/setup.bash
-        fi
-        cd $GITHUB_WORKSPACE/${{ inputs.target-path }}/../
-        if [[ "${{ inputs.rosdep-enabled }}" == "true" ]]; then
-          rosdep install --from-paths src ${{ inputs.rosdep-install-args }}
-        fi
-        if [[ "${{ inputs.ccache-enabled }}" == "true" ]]; then
-          colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ${{ inputs.target-args }}
-        else
-          colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args ${{ inputs.target-args }}
-        fi
-        if [ $? -ge 1 ]; then return 1; fi
-
-    - name: Run Tests (macOS)
-      if: inputs.run-tests == 'true' && runner.os == 'macOS'
-      shell: bash
-      run: |
-        cd $GITHUB_WORKSPACE/${{ inputs.target-path }}/../
-        source install/setup.bash
-        colcon test --event-handlers console_direct+ --return-code-on-test-failure ${{ inputs.run-tests-args }}
-        if [ $? -ge 1 ]; then return 1; fi
-        colcon test-result --verbose
-        if [ $? -ge 1 ]; then return 1; fi
+        before-script:       ${{ inputs.before-script }}
+        ccache-prefix:       ${{ inputs.ccache-prefix }}
+        ccache-enabled:      ${{ inputs.ccache-enabled }}
+        rosdep-enabled:      ${{ inputs.rosdep-enabled }}
+        rosdep-install-args: ${{ inputs.rosdep-install-args }}
+        add-ros-ppa:         ${{ inputs.add-ros-ppa }}
+        vcs-file:            ${{ inputs.vcs-file }}
+        upstream-args:       ${{ inputs.upstream-args }}
+        target-path:         ${{ inputs.target-path }}
+        target-args:         ${{ inputs.target-args }}
+        run-tests:           ${{ inputs.run-tests }}
+        run-tests-args:      ${{ inputs.run-tests-args }}
