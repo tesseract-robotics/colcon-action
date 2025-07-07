@@ -212,14 +212,13 @@ runs:
       if: runner.os == 'macOS'
       shell: bash
       run: |
-        python3 -m pip install --upgrade pip
-        python3 -m pip install vcstool colcon-common-extensions ninja
+        python3 -m pip install vcstool colcon-common-extensions ninja --break-system-packages
 
     - name: Install rosdep depends (macOS)
       if: inputs.rosdep-enabled == 'true' && runner.os == 'macOS'
       shell: bash
       run: |
-        python3 -m pip install rosdep
+        python3 -m pip install rosdep --break-system-packages
         sudo rosdep init || true
         rosdep update --include-eol-distros
 
