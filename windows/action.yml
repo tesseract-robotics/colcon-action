@@ -1,0 +1,57 @@
+name: colcon-action (windows)
+description: Windows build of a colcon workspace
+inputs:
+  before-script:        { required: false, default: '' }
+  ccache-prefix:        { required: false, default: '' }
+  ccache-enabled:       { required: false, default: 'true' }
+  rosdep-enabled:       { required: false, default: 'true' }
+  rosdep-install-args:  { required: false, default: '-iry' }
+  add-ros-ppa:          { required: false, default: 'true' }
+  vcs-file:             { required: false, default: '' }
+  upstream-args:        { required: false, default: '' }
+  target-path:          { required: false, default: '' }
+  target-args:          { required: false, default: '' }
+  run-tests:            { required: false, default: 'true' }
+  run-tests-args:       { required: false, default: '' }
+
+runs:
+  using: composite
+  steps:
+    - name: Install colcon deps
+      shell: bash
+      run: |
+        python3 -m pip install vcstool colcon-common-extensions ninja
+
+    - name: Build upstream workspace
+      if: inputs.vcs-file != ''
+      shell: bash
+      run: |
+        ${{ inputs.before-script }}
+        mkdir -p $GITHUB_WORKSPACE/upstream_ws/src
+        vcs import --input "$GITHUB_WORKSPACE/${{ inputs.target-path }}/${{ inputs.vcs-file }}" $GITHUB_WORKSPACE/upstream_ws/src
+        if [ $? -ge 1 ]; then return 1; fi
+        cd $GITHUB_WORKSPACE/upstream_ws
+        colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args ${{ inputs.upstream-args }}
+        if [ $? -ge 1 ]; then return 1; fi
+
+    - name: Build target workspace
+      shell: cmd
+      run: |
+        ${{ inputs.before-script }}
+        if not "${{ inputs.vcs-file }}" == "" (
+          call "%GITHUB_WORKSPACE%\upstream_ws\install\setup.bat"
+        )
+        cd %GITHUB_WORKSPACE%\${{ inputs.target-path }}\..\
+        colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args ${{ inputs.target-args }}
+        if %ERRORLEVEL% GEQ 1 exit 1
+
+    - name: Run tests
+      if: inputs.run-tests == 'true'
+      shell: cmd
+      run: |
+        cd %GITHUB_WORKSPACE%\${{ inputs.target-path }}\..\
+        call install\setup.bat
+        colcon test --event-handlers console_direct+ --return-code-on-test-failure ${{ inputs.run-tests-args }}
+        if %ERRORLEVEL% GEQ 1 exit 1
+        colcon test-result --verbose
+        if %ERRORLEVEL% GEQ 1 exit 1
