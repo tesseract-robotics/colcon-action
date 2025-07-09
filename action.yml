@@ -56,7 +56,7 @@ runs:
   steps:
     - name: Build on Linux
       if: runner.os == 'Linux'
-      uses: ./linux
+      uses: ${{ github.action_path }}/linux
       with:
         before-script:       ${{ inputs.before-script }}
         ccache-prefix:       ${{ inputs.ccache-prefix }}
@@ -73,7 +73,7 @@ runs:
 
     - name: Build on macOS
       if: runner.os == 'macOS'
-      uses: ./macos
+      uses: ${{ github.action_path }}/macos
       with:
         before-script:       ${{ inputs.before-script }}
         ccache-prefix:       ${{ inputs.ccache-prefix }}
@@ -90,7 +90,7 @@ runs:
 
     - name: Build on Windows
       if: runner.os == 'Windows'
-      uses: ./windows
+      uses: ${{ github.action_path }}/windows
       with:
         before-script:       ${{ inputs.before-script }}
         ccache-prefix:       ${{ inputs.ccache-prefix }}
