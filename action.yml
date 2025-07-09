@@ -63,7 +63,7 @@ runs:
         action_ref: ${{ github.action_ref }}
       with:
         # point at your sub-action folder + the same ref
-        uses: tesseract-robotics/colcon-action/linux@${{ env.action_ref }}
+        uses: tesseract-robotics/colcon-action/linux@${{ github.repository == 'tesseract-robotics/colcon-action' && github.sha || env.action_ref }}
         # serialize all inputs as JSON
         with: |
           {
@@ -87,7 +87,7 @@ runs:
       env:
         action_ref: ${{ github.action_ref }}
       with:
-        uses: tesseract-robotics/colcon-action/macos@${{ env.action_ref }}
+        uses: tesseract-robotics/colcon-action/macos@${{ github.repository == 'tesseract-robotics/colcon-action' && github.sha || env.action_ref }}
         with: |
           {
             "before-script":       ${{ toJSON(inputs.before-script) }},
@@ -110,7 +110,7 @@ runs:
       env:
         action_ref: ${{ github.action_ref }}
       with:
-        uses: tesseract-robotics/colcon-action/windows@${{ env.action_ref }}
+        uses: tesseract-robotics/colcon-action/windows@${{ github.repository == 'tesseract-robotics/colcon-action' && github.sha || env.action_ref }}
         with: |
           {
             "before-script":       ${{ toJSON(inputs.before-script) }},
