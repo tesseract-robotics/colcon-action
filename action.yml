@@ -54,53 +54,75 @@ inputs:
 runs:
   using: composite
   steps:
+
     - name: Build on Linux
       if: runner.os == 'Linux'
-      uses: ./linux
+      uses: jenseng/dynamic-uses@v1
+      env:
+        # capture the ref/tag that this action was invoked at
+        action_ref: ${{ github.action_ref }}
       with:
-        before-script:       ${{ inputs.before-script }}
-        ccache-prefix:       ${{ inputs.ccache-prefix }}
-        ccache-enabled:      ${{ inputs.ccache-enabled }}
-        rosdep-enabled:      ${{ inputs.rosdep-enabled }}
-        rosdep-install-args: ${{ inputs.rosdep-install-args }}
-        add-ros-ppa:         ${{ inputs.add-ros-ppa }}
-        vcs-file:            ${{ inputs.vcs-file }}
-        upstream-args:       ${{ inputs.upstream-args }}
-        target-path:         ${{ inputs.target-path }}
-        target-args:         ${{ inputs.target-args }}
-        run-tests:           ${{ inputs.run-tests }}
-        run-tests-args:      ${{ inputs.run-tests-args }}
+        # point at your sub-action folder + the same ref
+        uses: tesseract-robotics/colcon-action/linux@${{ github.repository == 'tesseract-robotics/colcon-action' && github.sha || env.action_ref }}
+        # serialize all inputs as JSON
+        with: |
+          {
+            "before-script":       ${{ toJSON(inputs.before-script) }},
+            "ccache-prefix":       ${{ toJSON(inputs.ccache-prefix) }},
+            "ccache-enabled":      ${{ toJSON(inputs.ccache-enabled) }},
+            "rosdep-enabled":      ${{ toJSON(inputs.rosdep-enabled) }},
+            "rosdep-install-args": ${{ toJSON(inputs.rosdep-install-args) }},
+            "add-ros-ppa":         ${{ toJSON(inputs.add-ros-ppa) }},
+            "vcs-file":            ${{ toJSON(inputs.vcs-file) }},
+            "upstream-args":       ${{ toJSON(inputs.upstream-args) }},
+            "target-path":         ${{ toJSON(inputs.target-path) }},
+            "target-args":         ${{ toJSON(inputs.target-args) }},
+            "run-tests":           ${{ toJSON(inputs.run-tests) }},
+            "run-tests-args":      ${{ toJSON(inputs.run-tests-args) }}
+          }
 
     - name: Build on macOS
       if: runner.os == 'macOS'
-      uses: ./macos
+      uses: jenseng/dynamic-uses@v1
+      env:
+        action_ref: ${{ github.action_ref }}
       with:
-        before-script:       ${{ inputs.before-script }}
-        ccache-prefix:       ${{ inputs.ccache-prefix }}
-        ccache-enabled:      ${{ inputs.ccache-enabled }}
-        rosdep-enabled:      ${{ inputs.rosdep-enabled }}
-        rosdep-install-args: ${{ inputs.rosdep-install-args }}
-        add-ros-ppa:         ${{ inputs.add-ros-ppa }}
-        vcs-file:            ${{ inputs.vcs-file }}
-        upstream-args:       ${{ inputs.upstream-args }}
-        target-path:         ${{ inputs.target-path }}
-        target-args:         ${{ inputs.target-args }}
-        run-tests:           ${{ inputs.run-tests }}
-        run-tests-args:      ${{ inputs.run-tests-args }}
+        uses: tesseract-robotics/colcon-action/macos@${{ github.repository == 'tesseract-robotics/colcon-action' && github.sha || env.action_ref }}
+        with: |
+          {
+            "before-script":       ${{ toJSON(inputs.before-script) }},
+            "ccache-prefix":       ${{ toJSON(inputs.ccache-prefix) }},
+            "ccache-enabled":      ${{ toJSON(inputs.ccache-enabled) }},
+            "rosdep-enabled":      ${{ toJSON(inputs.rosdep-enabled) }},
+            "rosdep-install-args": ${{ toJSON(inputs.rosdep-install-args) }},
+            "add-ros-ppa":         ${{ toJSON(inputs.add-ros-ppa) }},
+            "vcs-file":            ${{ toJSON(inputs.vcs-file) }},
+            "upstream-args":       ${{ toJSON(inputs.upstream-args) }},
+            "target-path":         ${{ toJSON(inputs.target-path) }},
+            "target-args":         ${{ toJSON(inputs.target-args) }},
+            "run-tests":           ${{ toJSON(inputs.run-tests) }},
+            "run-tests-args":      ${{ toJSON(inputs.run-tests-args) }}
+          }
 
     - name: Build on Windows
       if: runner.os == 'Windows'
-      uses: ./windows
+      uses: jenseng/dynamic-uses@v1
+      env:
+        action_ref: ${{ github.action_ref }}
       with:
-        before-script:       ${{ inputs.before-script }}
-        ccache-prefix:       ${{ inputs.ccache-prefix }}
-        ccache-enabled:      ${{ inputs.ccache-enabled }}
-        rosdep-enabled:      ${{ inputs.rosdep-enabled }}
-        rosdep-install-args: ${{ inputs.rosdep-install-args }}
-        add-ros-ppa:         ${{ inputs.add-ros-ppa }}
-        vcs-file:            ${{ inputs.vcs-file }}
-        upstream-args:       ${{ inputs.upstream-args }}
-        target-path:         ${{ inputs.target-path }}
-        target-args:         ${{ inputs.target-args }}
-        run-tests:           ${{ inputs.run-tests }}
-        run-tests-args:      ${{ inputs.run-tests-args }}
+        uses: tesseract-robotics/colcon-action/windows@${{ github.repository == 'tesseract-robotics/colcon-action' && github.sha || env.action_ref }}
+        with: |
+          {
+            "before-script":       ${{ toJSON(inputs.before-script) }},
+            "ccache-prefix":       ${{ toJSON(inputs.ccache-prefix) }},
+            "ccache-enabled":      ${{ toJSON(inputs.ccache-enabled) }},
+            "rosdep-enabled":      ${{ toJSON(inputs.rosdep-enabled) }},
+            "rosdep-install-args": ${{ toJSON(inputs.rosdep-install-args) }},
+            "add-ros-ppa":         ${{ toJSON(inputs.add-ros-ppa) }},
+            "vcs-file":            ${{ toJSON(inputs.vcs-file) }},
+            "upstream-args":       ${{ toJSON(inputs.upstream-args) }},
+            "target-path":         ${{ toJSON(inputs.target-path) }},
+            "target-args":         ${{ toJSON(inputs.target-args) }},
+            "run-tests":           ${{ toJSON(inputs.run-tests) }},
+            "run-tests-args":      ${{ toJSON(inputs.run-tests-args) }}
+          }
