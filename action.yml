@@ -61,9 +61,10 @@ runs:
       env:
         # capture the ref/tag that this action was invoked at
         action_ref: ${{ github.action_ref }}
+        action_repository: ${{ github.action_repository }}
       with:
         # point at your sub-action folder + the same ref
-        uses: ${{ github.action_repository }}/linux@${{ github.repository == '${{ github.action_repository }}' && github.sha || env.action_ref }}
+        uses: ${{ env.action_repository }}/linux@${{ github.repository == '${{ env.action_repository }}' && github.sha || env.action_ref }}
         # serialize all inputs as JSON
         with: |
           {
@@ -86,8 +87,9 @@ runs:
       uses: jenseng/dynamic-uses@v1
       env:
         action_ref: ${{ github.action_ref }}
+        action_repository: ${{ github.action_repository }}
       with:
-        uses: ${{ github.action_repository }}/macos@${{ github.repository == '${{ github.action_repository }}' && github.sha || env.action_ref }}
+        uses: ${{ env.action_repository }}/macos@${{ github.repository == '${{ env.action_repository }}' && github.sha || env.action_ref }}
         with: |
           {
             "before-script":       ${{ toJSON(inputs.before-script) }},
@@ -109,8 +111,9 @@ runs:
       uses: jenseng/dynamic-uses@v1
       env:
         action_ref: ${{ github.action_ref }}
+        action_repository: ${{ github.action_repository }}
       with:
-        uses: ${{ github.action_repository }}/windows@${{ github.repository == '${{ github.action_repository }}' && github.sha || env.action_ref }}
+        uses: ${{ env.action_repository }}/windows@${{ github.repository == '${{ env.action_repository }}' && github.sha || env.action_ref }}
         with: |
           {
             "before-script":       ${{ toJSON(inputs.before-script) }},
