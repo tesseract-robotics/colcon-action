@@ -61,7 +61,7 @@ runs:
       env:
         # capture the ref/tag that this action was invoked at
         action_ref: ${{ github.action_ref }}
-        action_repository: ${{ github.action_repository }}
+        action_repository: ${{ github.action_repository != '' && github.action_repository || github.repository }}
       with:
         # point at your sub-action folder + the same ref
         uses: ${{ env.action_repository }}/linux@${{ github.repository == '${{ env.action_repository }}' && github.sha || env.action_ref }}
@@ -87,7 +87,7 @@ runs:
       uses: jenseng/dynamic-uses@v1
       env:
         action_ref: ${{ github.action_ref }}
-        action_repository: ${{ github.action_repository }}
+        action_repository: ${{ github.action_repository != '' && github.action_repository || github.repository }}
       with:
         uses: ${{ env.action_repository }}/macos@${{ github.repository == '${{ env.action_repository }}' && github.sha || env.action_ref }}
         with: |
@@ -111,7 +111,7 @@ runs:
       uses: jenseng/dynamic-uses@v1
       env:
         action_ref: ${{ github.action_ref }}
-        action_repository: ${{ github.action_repository }}
+        action_repository: ${{ github.action_repository != '' && github.action_repository || github.repository }}
       with:
         uses: ${{ env.action_repository }}/windows@${{ github.repository == '${{ env.action_repository }}' && github.sha || env.action_ref }}
         with: |
