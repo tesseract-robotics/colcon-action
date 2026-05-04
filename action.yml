@@ -63,7 +63,7 @@ runs:
         action_ref: ${{ github.action_ref }}
       with:
         # point at your sub-action folder + the same ref
-        uses: johnwason/colcon-action/linux@${{ github.repository == 'johnwason/colcon-action' && github.sha || env.action_ref }}
+        uses: ${{ github.action_repository }}/linux@${{ github.repository == '${{ github.action_repository }}' && github.sha || env.action_ref }}
         # serialize all inputs as JSON
         with: |
           {
@@ -87,7 +87,7 @@ runs:
       env:
         action_ref: ${{ github.action_ref }}
       with:
-        uses: johnwason/colcon-action/macos@${{ github.repository == 'johnwason/colcon-action' && github.sha || env.action_ref }}
+        uses: ${{ github.action_repository }}/macos@${{ github.repository == '${{ github.action_repository }}' && github.sha || env.action_ref }}
         with: |
           {
             "before-script":       ${{ toJSON(inputs.before-script) }},
@@ -110,7 +110,7 @@ runs:
       env:
         action_ref: ${{ github.action_ref }}
       with:
-        uses: johnwason/colcon-action/windows@${{ github.repository == 'johnwason/colcon-action' && github.sha || env.action_ref }}
+        uses: ${{ github.action_repository }}/windows@${{ github.repository == '${{ github.action_repository }}' && github.sha || env.action_ref }}
         with: |
           {
             "before-script":       ${{ toJSON(inputs.before-script) }},
