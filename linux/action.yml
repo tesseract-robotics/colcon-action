@@ -17,37 +17,44 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Set sudo variable
+      shell: bash
+      run: |
+        if [ "$(id -u)" -ne 0 ]; then SUDO='sudo'; else SUDO=''; fi
+        echo "SUDO=$SUDO" >> $GITHUB_ENV
+
     - name: Install base deps
       shell: bash
       run: |
-        apt update -y -qq
-        apt install -y cmake curl git python3 python3-pip
+        $SUDO apt update -y -qq
+        $SUDO apt install -y cmake curl git python3 python3-pip
 
     - name: Install ROS/Colcon PPA
       if: inputs.add-ros-ppa == 'true'
       shell: bash
       run: |
-        curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
-        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | tee /etc/apt/sources.list.d/ros2.list > /dev/null
+        $SUDO curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | $SUDO tee /etc/apt/sources.list.d/ros2.list > /dev/null
 
     - name: Install colcon deps
       shell: bash
       run: |
-        apt update -y -qq
-        apt install -y -qq python3-vcstool python3-colcon-common-extensions
+        $SUDO apt update -y -qq
+        $SUDO apt install -y -qq python3-vcstool python3-colcon-common-extensions
 
     - name: rosdep init & update
       if: inputs.rosdep-enabled == 'true'
       shell: bash
       run: |
-        apt install -y -qq python3-rosdep
-        if [ ! -d /etc/ros/rosdep/sources.list.d ]; then rosdep init; fi
+        $SUDO apt install -y -qq python3-rosdep
+        if [ ! -d /etc/ros/rosdep/sources.list.d ]; then $SUDO rosdep init; fi
         rosdep update --include-eol-distros
 
     - name: Install ccache
       if: inputs.ccache-enabled == 'true'
       shell: bash
-      run: apt install -y -qq ccache
+      run: |
+        $SUDO apt install -y -qq ccache
 
     - name: Prepare ccache timestamp
       if: inputs.ccache-enabled == 'true'
@@ -76,7 +83,7 @@ runs:
         if [ $? -ge 1 ]; then return 1; fi
         cd $GITHUB_WORKSPACE/upstream_ws
         if [ "${{ inputs.rosdep-enabled }}" = "true" ]; then
-          apt update -y -qq
+          $SUDO apt update -y -qq
           rosdep install --from-paths src ${{ inputs.rosdep-install-args }}
         fi
         if [ "${{ inputs.ccache-enabled }}" = "true" ]; then
@@ -95,7 +102,7 @@ runs:
         fi
         cd $GITHUB_WORKSPACE/${{ inputs.target-path }}/../
         if [ "${{ inputs.rosdep-enabled }}" = "true" ]; then
-          apt update -y -qq
+          $SUDO apt update -y -qq
           rosdep install --from-paths src ${{ inputs.rosdep-install-args }}
         fi
         if [ "${{ inputs.ccache-enabled }}" = "true" ]; then

@@ -3,21 +3,32 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [ main ]
+    branches: 
+      - main
+      - dev**
   workflow_dispatch:
 jobs:
   # ──────────────────────────────────────────────────────────────────────────────
   # Linux in a container
   build-linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - runner: ubuntu-latest
+            container: ubuntu:latest
+          - runner: ubuntu-latest
+            container:
     name: Linux
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.config.runner }}
     container:
-      image: ubuntu:latest
+      image: ${{ matrix.config.container }}
     steps:
       - name: Checkout this repo
         uses: actions/checkout@v4
 
       - name: Setup Docker tools
+        if: ${{ matrix.config.container != '' }}
         run: apt update && apt install -y git
 
       - name: Clone boost_plugin_loader
