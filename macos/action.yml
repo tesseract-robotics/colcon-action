@@ -26,7 +26,7 @@ runs:
     - name: Install colcon deps
       shell: bash
       run: |
-        python3 -m pip install vcstool colcon-common-extensions ninja --break-system-packages
+        python3 -m pip install vcs2l colcon-common-extensions ninja --break-system-packages
 
     - name: rosdep init & update
       if: inputs.rosdep-enabled == 'true'

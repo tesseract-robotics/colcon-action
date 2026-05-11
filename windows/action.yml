@@ -20,7 +20,7 @@ runs:
     - name: Install colcon deps
       shell: bash
       run: |
-        python3 -m pip install vcstool colcon-common-extensions ninja
+        python3 -m pip install vcs2l colcon-common-extensions ninja
 
     - name: Build upstream workspace
       if: inputs.vcs-file != ''
