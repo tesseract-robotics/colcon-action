@@ -112,9 +112,11 @@ runs:
         colcon test-result --verbose
         if [ $? -ge 1 ]; then return 1; fi
 
-    # Runs after a failed build too: a partially warmed cache is still worth keeping.
+    # Runs after a failed build too: a partially warmed cache is still worth keeping. The dir test
+    # covers a failure before Configure ccache, where there is nothing to save and no key to save it
+    # under.
     - name: Save cache
-      if: ${{ !cancelled() && inputs.ccache-enabled == 'true' }}
+      if: ${{ !cancelled() && inputs.ccache-enabled == 'true' && steps.ccache.outputs.dir != '' }}
       uses: actions/cache/save@v4
       with:
         path: ${{ steps.ccache.outputs.dir }}
