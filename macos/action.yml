@@ -79,7 +79,7 @@ runs:
         if [ "${{ inputs.rosdep-enabled }}" = "true" ]]; then
           rosdep install --from-paths src ${{ inputs.rosdep-install-args }}
         fi
-        colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args ${{ inputs.target-args }}
+        colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args ${{ inputs.upstream-args }}
         if [ $? -ge 1 ]; then return 1; fi
 
     - name: Build target workspace
