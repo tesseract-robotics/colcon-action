@@ -50,28 +50,36 @@ runs:
         if [ ! -d /etc/ros/rosdep/sources.list.d ]; then $SUDO rosdep init; fi
         rosdep update --include-eol-distros
 
-    - name: Install ccache
+    - name: Configure ccache
+      id: ccache
       if: inputs.ccache-enabled == 'true'
       shell: bash
       run: |
         $SUDO apt install -y -qq ccache
-
-    - name: Prepare ccache timestamp
-      if: inputs.ccache-enabled == 'true'
-      id: ccache_timestamp
-      shell: cmake -P {0}
-      run: |
-        string(TIMESTAMP current_date "%Y-%m-%d-%H;%M;%S" UTC)
-        message("::set-output name=timestamp::${current_date}")
+        # A caller that already set CCACHE_DIR keeps it: what matters is that ccache and the cache
+        # step below name one directory, not which directory that is.
+        dir="${CCACHE_DIR:-$GITHUB_WORKSPACE/.ccache}"
+        mkdir -p "$dir"
+        echo "dir=$dir" >> "$GITHUB_OUTPUT"
+        echo "CCACHE_DIR=$dir" >> "$GITHUB_ENV"
+        echo "CCACHE_MAXSIZE=${CCACHE_MAXSIZE:-1G}" >> "$GITHUB_ENV"
+        # CMake picks the launchers up from the environment (3.17+). Passing them as -D flags does
+        # not work here: colcon's --cmake-args is last-wins, so the caller's own --cmake-args drops
+        # them.
+        echo "CMAKE_C_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
+        echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
 
     - name: Restore cache
       if: inputs.ccache-enabled == 'true'
       uses: actions/cache@v4
       with:
-        path: ${{ inputs.ccache-prefix }}/.ccache
-        key:   ${{ inputs.ccache-prefix }}-linux-ccache-${{ steps.ccache_timestamp.outputs.timestamp }}
+        path: ${{ steps.ccache.outputs.dir }}
+        # github.run_id is shared by every job of a run, so the job id has to be in the key too or
+        # two jobs collide on it and the second save is dropped with a warning. Matrix legs share
+        # the job id as well — those still need distinct ccache-prefix values.
+        key:   ${{ inputs.ccache-prefix }}-${{ runner.os }}-ccache-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}
         restore-keys: |
-          ${{ inputs.ccache-prefix }}-linux-ccache-
+          ${{ inputs.ccache-prefix }}-${{ runner.os }}-ccache-${{ github.job }}-
 
     - name: Build upstream workspace
       if: inputs.vcs-file != ''
@@ -86,11 +94,7 @@ runs:
           $SUDO apt update -y -qq
           rosdep install --from-paths src ${{ inputs.rosdep-install-args }}
         fi
-        if [ "${{ inputs.ccache-enabled }}" = "true" ]; then
-          colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ${{ inputs.upstream-args }}
-        else
-          colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args ${{ inputs.upstream-args }}
-        fi
+        colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args ${{ inputs.upstream-args }}
         if [ $? -ge 1 ]; then return 1; fi
 
     - name: Build target workspace
@@ -105,11 +109,7 @@ runs:
           $SUDO apt update -y -qq
           rosdep install --from-paths src ${{ inputs.rosdep-install-args }}
         fi
-        if [ "${{ inputs.ccache-enabled }}" = "true" ]; then
-          colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ${{ inputs.target-args }}
-        else
-          colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args ${{ inputs.target-args }}
-        fi
+        colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args ${{ inputs.target-args }}
         if [ $? -ge 1 ]; then return 1; fi
 
     - name: Run tests

@@ -17,8 +17,10 @@ jobs:
         config:
           - runner: ubuntu-latest
             container: ubuntu:latest
+            id: container
           - runner: ubuntu-latest
             container:
+            id: host
     name: Linux
     runs-on: ${{ matrix.config.runner }}
     container:
@@ -40,7 +42,9 @@ jobs:
       - name: Run colcon-action (Linux)
         uses: ./
         with:
-          ccache-enabled:  false
+          ccache-enabled:  true
+          # Matrix legs are not visible to the action, so they disambiguate their own cache key.
+          ccache-prefix:   ci-linux-test-${{ matrix.config.id }}
           rosdep-enabled:  true
           upstream-args:   --cmake-args -DCMAKE_BUILD_TYPE=Release
           vcs-file:        boost_plugin_loader/dependencies.repos
@@ -48,6 +52,10 @@ jobs:
           target-args:     --cmake-args -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
           run-tests:       true
           run-tests-args:  ''
+
+      - name: Report ccache statistics
+        shell: bash
+        run: ccache -s
 
       - name: Success
         run: echo "✅ boost_plugin_loader built on Linux container"
@@ -94,7 +102,8 @@ jobs:
       - name: Run colcon-action (macOS)
         uses: ./
         with:
-          ccache-enabled:  false
+          ccache-enabled:  true
+          ccache-prefix:   ci-mac-test
           rosdep-enabled:  true
           upstream-args:   --cmake-args -G "Ninja" -DVCPKG_TARGET_TRIPLET=arm64-osx-release -DCMAKE_BUILD_TYPE=Release
           vcs-file:        boost_plugin_loader/dependencies.repos
@@ -102,6 +111,10 @@ jobs:
           target-args:     --cmake-args -G "Ninja" -DVCPKG_TARGET_TRIPLET=arm64-osx-release -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
           run-tests:       true
           run-tests-args:  ''
+
+      - name: Report ccache statistics
+        shell: bash
+        run: ccache -s
 
       - name: Success
         run: echo "✅ boost_plugin_loader built on macOS"

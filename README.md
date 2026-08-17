@@ -9,7 +9,9 @@
   with:
     # Script that runs before anything else in build steps (optional, default: '')
     before-script: ''
-    # CCache key prefix component (optional, default: '')
+    # CCache key prefix component (optional, default: '').
+    # Give each leg of a matrix a distinct value: the action disambiguates the cache key per job,
+    # but it cannot see the matrix.
     ccache-prefix: ''
     # Enable/Disable ccache (optional, default: 'true')
     ccache-enabled: 'true'
@@ -34,3 +36,15 @@
     # Additional args to pass to colcon test for target workspace (optional, default: '')
     run-tests-args: ''
 ```
+
+## ccache
+
+With `ccache-enabled: 'true'` the action does the whole ccache setup itself. It sets `CCACHE_DIR`
+(to `$GITHUB_WORKSPACE/.ccache`, unless the caller already set one), caps it with `CCACHE_MAXSIZE`
+(`1G`, unless the caller already set one), caches exactly that directory, and exports
+`CMAKE_C_COMPILER_LAUNCHER`/`CMAKE_CXX_COMPILER_LAUNCHER` so the builds pick ccache up.
+
+The launchers go through the environment rather than `--cmake-args` on purpose: colcon's
+`--cmake-args` is last-wins, so a launcher the action appends is discarded by the `upstream-args`
+or `target-args` that follow it. Both variables stay set for the rest of the job, so a
+`ccache -s` step after this action reports on the right directory.

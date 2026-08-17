@@ -36,26 +36,36 @@ runs:
         sudo rosdep init || true
         rosdep update --include-eol-distros
 
-    - name: Install ccache
+    - name: Configure ccache
+      id: ccache
       if: inputs.ccache-enabled == 'true'
-      shell: bash
-      run: brew install ccache
-
-    - name: Prepare ccache timestamp
-      if: inputs.ccache-enabled == 'true'
-      id: ccache_timestamp_macos
       shell: bash
       run: |
-        date -u +"::set-output name=timestamp::%Y-%m-%d-%H;%M;%S"
+        brew install ccache
+        # A caller that already set CCACHE_DIR keeps it: what matters is that ccache and the cache
+        # step below name one directory, not which directory that is.
+        dir="${CCACHE_DIR:-$GITHUB_WORKSPACE/.ccache}"
+        mkdir -p "$dir"
+        echo "dir=$dir" >> "$GITHUB_OUTPUT"
+        echo "CCACHE_DIR=$dir" >> "$GITHUB_ENV"
+        echo "CCACHE_MAXSIZE=${CCACHE_MAXSIZE:-1G}" >> "$GITHUB_ENV"
+        # CMake picks the launchers up from the environment (3.17+). Passing them as -D flags does
+        # not work here: colcon's --cmake-args is last-wins, so the caller's own --cmake-args drops
+        # them.
+        echo "CMAKE_C_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
+        echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
 
     - name: Restore cache
       if: inputs.ccache-enabled == 'true'
       uses: actions/cache@v4
       with:
-        path: ${{ inputs.ccache-prefix }}/.ccache
-        key:   ${{ inputs.ccache-prefix }}-macos-ccache-${{ steps.ccache_timestamp_macos.outputs.timestamp }}
+        path: ${{ steps.ccache.outputs.dir }}
+        # github.run_id is shared by every job of a run, so the job id has to be in the key too or
+        # two jobs collide on it and the second save is dropped with a warning. Matrix legs share
+        # the job id as well — those still need distinct ccache-prefix values.
+        key:   ${{ inputs.ccache-prefix }}-${{ runner.os }}-ccache-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}
         restore-keys: |
-          ${{ inputs.ccache-prefix }}-macos-ccache-
+          ${{ inputs.ccache-prefix }}-${{ runner.os }}-ccache-${{ github.job }}-
 
     - name: Build upstream workspace
       if: inputs.vcs-file != ''
@@ -69,11 +79,7 @@ runs:
         if [ "${{ inputs.rosdep-enabled }}" = "true" ]]; then
           rosdep install --from-paths src ${{ inputs.rosdep-install-args }}
         fi
-        if [ "${{ inputs.ccache-enabled }}" = "true" ]]; then
-          colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ${{ inputs.target-args }}
-        else
-          colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args ${{ inputs.target-args }}
-        fi
+        colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args ${{ inputs.target-args }}
         if [ $? -ge 1 ]; then return 1; fi
 
     - name: Build target workspace
@@ -87,11 +93,7 @@ runs:
         if [ "${{ inputs.rosdep-enabled }}" = "true" ]]; then
           rosdep install --from-paths src ${{ inputs.rosdep-install-args }}
         fi
-        if [ "${{ inputs.ccache-enabled }}" = "true" ]]; then
-          colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ${{ inputs.target-args }}
-        else
-          colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args ${{ inputs.target-args }}
-        fi
+        colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args ${{ inputs.target-args }}
         if [ $? -ge 1 ]; then return 1; fi
 
     - name: Run tests

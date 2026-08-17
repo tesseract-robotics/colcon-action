@@ -7,7 +7,7 @@ inputs:
     required: false
     default: ''
   ccache-prefix:
-    description: "CCache key prefix component (optional)"
+    description: "CCache key prefix component; must be distinct per matrix leg (optional)"
     required: false
     default: ''
   ccache-enabled:
