@@ -89,7 +89,7 @@ runs:
         vcs import --input "$GITHUB_WORKSPACE/${{ inputs.target-path }}/${{ inputs.vcs-file }}" $GITHUB_WORKSPACE/upstream_ws/src
         if [ $? -ge 1 ]; then return 1; fi
         cd $GITHUB_WORKSPACE/upstream_ws
-        if [ "${{ inputs.rosdep-enabled }}" = "true" ]]; then
+        if [ "${{ inputs.rosdep-enabled }}" = "true" ]; then
           rosdep install --from-paths src ${{ inputs.rosdep-install-args }}
         fi
         colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args ${{ inputs.upstream-args }}
@@ -103,7 +103,7 @@ runs:
           source $GITHUB_WORKSPACE/upstream_ws/install/setup.bash
         fi
         cd $GITHUB_WORKSPACE/${{ inputs.target-path }}/../
-        if [ "${{ inputs.rosdep-enabled }}" = "true" ]]; then
+        if [ "${{ inputs.rosdep-enabled }}" = "true" ]; then
           rosdep install --from-paths src ${{ inputs.rosdep-install-args }}
         fi
         colcon build --event-handlers desktop_notification- status- terminal_title- --cmake-args ${{ inputs.target-args }}
