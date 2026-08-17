@@ -59,6 +59,14 @@ runs:
         key: ${{ steps.ccache.outputs.key }}
         restore-keys: ${{ steps.ccache.outputs.restore_key }}
 
+    # ccache keeps its counters inside CCACHE_DIR, which the restore above has just repopulated, so
+    # without this a `ccache -s` afterwards reports the previous run's misses alongside this run's
+    # hits and a fully cached build reads as roughly 50%.
+    - name: Zero ccache statistics
+      if: inputs.ccache-enabled == 'true'
+      shell: pwsh
+      run: ccache -z
+
     - name: Build upstream workspace
       if: inputs.vcs-file != ''
       shell: bash
