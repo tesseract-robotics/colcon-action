@@ -28,16 +28,18 @@ runs:
       shell: pwsh
       run: |
         choco install ccache -y --no-progress
-        $prefix = "${{ inputs.ccache-prefix }}"
-        $dir = Join-Path $env:GITHUB_WORKSPACE ".ccache"
-        if ($prefix) { $dir = Join-Path $env:GITHUB_WORKSPACE (Join-Path $prefix ".ccache") }
+        # A caller that already set CCACHE_DIR keeps it: what matters is that ccache and the cache
+        # step below name one directory, not which directory that is.
+        $dir = if ($env:CCACHE_DIR) { $env:CCACHE_DIR } else { Join-Path $env:GITHUB_WORKSPACE ".ccache" }
+        $maxsize = if ($env:CCACHE_MAXSIZE) { $env:CCACHE_MAXSIZE } else { "1G" }
         New-Item -ItemType Directory -Force -Path $dir | Out-Null
-        # The cache step is handed this same absolute path, so the directory ccache writes and the
-        # directory that gets stored cannot drift apart when ccache-prefix is empty.
         "dir=$dir" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
         "CCACHE_DIR=$dir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-        # CMake picks the launcher up from the environment (3.17+), so neither build command below
-        # has to splice a -D flag into its command line.
+        "CCACHE_MAXSIZE=$maxsize" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+        # CMake picks the launchers up from the environment (3.17+). Passing them as -D flags does
+        # not work here: colcon's --cmake-args is last-wins, so the caller's own --cmake-args drops
+        # them.
+        "CMAKE_C_COMPILER_LAUNCHER=ccache" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
         "CMAKE_CXX_COMPILER_LAUNCHER=ccache" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
     - name: Restore cache
@@ -45,9 +47,12 @@ runs:
       uses: actions/cache@v4
       with:
         path: ${{ steps.ccache.outputs.dir }}
-        key:   ${{ inputs.ccache-prefix }}-windows-ccache-${{ github.run_id }}-${{ github.run_attempt }}
+        # github.run_id is shared by every job of a run, so the job id has to be in the key too or
+        # two jobs collide on it and the second save is dropped with a warning. Matrix legs share
+        # the job id as well — those still need distinct ccache-prefix values.
+        key:   ${{ inputs.ccache-prefix }}-${{ runner.os }}-ccache-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}
         restore-keys: |
-          ${{ inputs.ccache-prefix }}-windows-ccache-
+          ${{ inputs.ccache-prefix }}-${{ runner.os }}-ccache-${{ github.job }}-
 
     - name: Build upstream workspace
       if: inputs.vcs-file != ''
