@@ -22,6 +22,33 @@ runs:
       run: |
         python3 -m pip install vcs2l colcon-common-extensions ninja
 
+    - name: Configure ccache
+      id: ccache
+      if: inputs.ccache-enabled == 'true'
+      shell: pwsh
+      run: |
+        choco install ccache -y --no-progress
+        $prefix = "${{ inputs.ccache-prefix }}"
+        $dir = Join-Path $env:GITHUB_WORKSPACE ".ccache"
+        if ($prefix) { $dir = Join-Path $env:GITHUB_WORKSPACE (Join-Path $prefix ".ccache") }
+        New-Item -ItemType Directory -Force -Path $dir | Out-Null
+        # The cache step is handed this same absolute path, so the directory ccache writes and the
+        # directory that gets stored cannot drift apart when ccache-prefix is empty.
+        "dir=$dir" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        "CCACHE_DIR=$dir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+        # CMake picks the launcher up from the environment (3.17+), so neither build command below
+        # has to splice a -D flag into its command line.
+        "CMAKE_CXX_COMPILER_LAUNCHER=ccache" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+    - name: Restore cache
+      if: inputs.ccache-enabled == 'true'
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.ccache.outputs.dir }}
+        key:   ${{ inputs.ccache-prefix }}-windows-ccache-${{ github.run_id }}-${{ github.run_attempt }}
+        restore-keys: |
+          ${{ inputs.ccache-prefix }}-windows-ccache-
+
     - name: Build upstream workspace
       if: inputs.vcs-file != ''
       shell: bash

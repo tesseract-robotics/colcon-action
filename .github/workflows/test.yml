@@ -155,7 +155,8 @@ jobs:
       - name: Run colcon-action (Windows)
         uses: ./
         with:
-          ccache-enabled:  false
+          ccache-enabled:  true
+          ccache-prefix:   ci-win-test
           rosdep-enabled:  true
           upstream-args:   --cmake-args -G "Ninja" -DVCPKG_TARGET_TRIPLET=x64-windows-release -DCMAKE_BUILD_TYPE=Release
           vcs-file:        boost_plugin_loader/dependencies.repos
@@ -163,6 +164,10 @@ jobs:
           target-args:     --cmake-args -G "Ninja" -DVCPKG_TARGET_TRIPLET=x64-windows-release -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
           run-tests:       true
           run-tests-args:  ''
+
+      - name: Report ccache statistics
+        shell: bash
+        run: ccache -s
 
       - name: Success
         run: echo "✅ boost_plugin_loader built on Windows"
