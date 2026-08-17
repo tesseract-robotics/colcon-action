@@ -52,7 +52,7 @@ runs:
         # the job id as well — those still need distinct ccache-prefix values.
         restore_key="${{ inputs.ccache-prefix }}-${{ runner.os }}-ccache-${{ github.job }}-"
         echo "restore_key=$restore_key" >> "$GITHUB_OUTPUT"
-        echo "key=$restore_key${{ github.run_id }}-${{ github.run_attempt }}" >> "$GITHUB_OUTPUT"
+        echo "key=${restore_key}${{ github.run_id }}-${{ github.run_attempt }}" >> "$GITHUB_OUTPUT"
         echo "CCACHE_DIR=$dir" >> "$GITHUB_ENV"
         echo "CCACHE_MAXSIZE=${CCACHE_MAXSIZE:-1G}" >> "$GITHUB_ENV"
         # CMake picks the launchers up from the environment (3.17+). Passing them as -D flags does
