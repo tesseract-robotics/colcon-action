@@ -47,6 +47,12 @@ runs:
         dir="${CCACHE_DIR:-$GITHUB_WORKSPACE/.ccache}"
         mkdir -p "$dir"
         echo "dir=$dir" >> "$GITHUB_OUTPUT"
+        # github.run_id is shared by every job of a run, so the job id has to be in the key too or
+        # two jobs collide on it and the second save is dropped with a warning. Matrix legs share
+        # the job id as well — those still need distinct ccache-prefix values.
+        restore_key="${{ inputs.ccache-prefix }}-${{ runner.os }}-ccache-${{ github.job }}-"
+        echo "restore_key=$restore_key" >> "$GITHUB_OUTPUT"
+        echo "key=$restore_key${{ github.run_id }}-${{ github.run_attempt }}" >> "$GITHUB_OUTPUT"
         echo "CCACHE_DIR=$dir" >> "$GITHUB_ENV"
         echo "CCACHE_MAXSIZE=${CCACHE_MAXSIZE:-1G}" >> "$GITHUB_ENV"
         # CMake picks the launchers up from the environment (3.17+). Passing them as -D flags does
@@ -55,17 +61,16 @@ runs:
         echo "CMAKE_C_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
         echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
 
+    # Restore and save are separate steps rather than one actions/cache: its post step re-evaluates
+    # `path`, and inside a composite action the steps context it needs is gone by then, so the save
+    # is skipped with only "Input required and not supplied: path" in the log.
     - name: Restore cache
       if: inputs.ccache-enabled == 'true'
-      uses: actions/cache@v4
+      uses: actions/cache/restore@v4
       with:
         path: ${{ steps.ccache.outputs.dir }}
-        # github.run_id is shared by every job of a run, so the job id has to be in the key too or
-        # two jobs collide on it and the second save is dropped with a warning. Matrix legs share
-        # the job id as well — those still need distinct ccache-prefix values.
-        key:   ${{ inputs.ccache-prefix }}-${{ runner.os }}-ccache-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}
-        restore-keys: |
-          ${{ inputs.ccache-prefix }}-${{ runner.os }}-ccache-${{ github.job }}-
+        key: ${{ steps.ccache.outputs.key }}
+        restore-keys: ${{ steps.ccache.outputs.restore_key }}
 
     - name: Build upstream workspace
       if: inputs.vcs-file != ''
@@ -106,3 +111,11 @@ runs:
         if [ $? -ge 1 ]; then return 1; fi
         colcon test-result --verbose
         if [ $? -ge 1 ]; then return 1; fi
+
+    # Runs after a failed build too: a partially warmed cache is still worth keeping.
+    - name: Save cache
+      if: ${{ !cancelled() && inputs.ccache-enabled == 'true' }}
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ steps.ccache.outputs.dir }}
+        key: ${{ steps.ccache.outputs.key }}
