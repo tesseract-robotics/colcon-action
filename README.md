@@ -25,15 +25,15 @@
     # Indicate if ROS PPA should be added (optional, default: 'true').
     # The ROS PPA must be added if the Linux OS on which this action runs does not already contain a ROS distro.
     # The ROS PPA should not be added if the Linux OS already contains a ROS distro (e.g., ROS Docker image)
-    add-ros-ppa: 'false'
+    add-ros-ppa: 'true'
     # The relative path to the vcs repos file (optional, default: '')
-    vcs-file: 'dependencies.repos'
+    vcs-file: ''
     # Additional args to pass to colcon build for upstream workspace (optional, default: '')
-    upstream-args: '--cmake-args -DCMAKE_BUILD_TYPE=Release'
+    upstream-args: ''
     # Relative path under $GITHUB_WORKSPACE where the repository was placed (optional, default: '')
     target-path: ''
     # Additional args to pass to colcon build for target workspace (optional, default: '')
-    target-args: '--cmake-args -DCMAKE_BUILD_TYPE=Debug'
+    target-args: ''
     # Indicate if test should be ran (optional, default: 'true')
     run-tests: 'true'
     # Additional args to pass to colcon test for target workspace (optional, default: '')
