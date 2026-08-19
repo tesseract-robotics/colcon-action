@@ -21,8 +21,24 @@ runs:
     - name: Install base deps
       shell: bash
       run: |
-        brew update
-        brew install cmake curl git python3
+        # brew install upgrades a formula that is present but outdated, so naming only what is
+        # absent is what keeps this a no-op on a runner that already ships these. The probe runs
+        # each tool instead of looking it up: macOS keeps stub /usr/bin entries for git and python3
+        # that are present whether or not the Command Line Tools are, and fail only when invoked.
+        missing=()
+        for f in cmake curl git; do
+          "$f" --version > /dev/null 2>&1 || missing+=("$f")
+        done
+        # python3 is probed through pip, which is all the later steps use it for. They pass
+        # --break-system-packages, an option pip understands only from 23.0.1, so a system python
+        # carrying an older pip satisfies a plain presence check and then fails the install.
+        # Capturing the output beats piping it into grep, whose SIGPIPE would reach the exit status.
+        pip_help=$(python3 -m pip install --help 2>/dev/null) || pip_help=''
+        case "$pip_help" in
+          *--break-system-packages*) ;;
+          *) missing+=(python3) ;;
+        esac
+        [ ${#missing[@]} -eq 0 ] || brew install "${missing[@]}"
 
     - name: Install colcon deps
       shell: bash
