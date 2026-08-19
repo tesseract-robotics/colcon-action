@@ -4,6 +4,7 @@ inputs:
   before-script:        { required: false, default: '' }
   ccache-prefix:        { required: false, default: '' }
   ccache-enabled:       { required: false, default: 'true' }
+  ccache-maxsize:       { required: false, default: '1G' }
   rosdep-enabled:       { required: false, default: 'true' }
   rosdep-install-args:  { required: false, default: '-iry' }
   add-ros-ppa:          { required: false, default: 'true' }
@@ -25,46 +26,30 @@ runs:
     - name: Configure ccache
       id: ccache
       if: inputs.ccache-enabled == 'true'
-      shell: pwsh
+      shell: bash
+      env:
+        INPUT_CCACHE_PREFIX: ${{ inputs.ccache-prefix }}
+        INPUT_CCACHE_MAXSIZE: ${{ inputs.ccache-maxsize }}
       run: |
         choco install ccache -y --no-progress
-        # A caller that already set CCACHE_DIR keeps it: what matters is that ccache and the cache
-        # step below name one directory, not which directory that is.
-        $dir = if ($env:CCACHE_DIR) { $env:CCACHE_DIR } else { Join-Path $env:GITHUB_WORKSPACE ".ccache" }
-        $maxsize = if ($env:CCACHE_MAXSIZE) { $env:CCACHE_MAXSIZE } else { "1G" }
-        New-Item -ItemType Directory -Force -Path $dir | Out-Null
-        "dir=$dir" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-        # github.run_id is shared by every job of a run, so the job id has to be in the key too or
-        # two jobs collide on it and the second save is dropped with a warning. Matrix legs share
-        # the job id as well — those still need distinct ccache-prefix values.
-        $restoreKey = "${{ inputs.ccache-prefix }}-${{ runner.os }}-ccache-${{ github.job }}-"
-        "restore_key=$restoreKey" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-        "key=${restoreKey}${{ github.run_id }}-${{ github.run_attempt }}" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-        "CCACHE_DIR=$dir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-        "CCACHE_MAXSIZE=$maxsize" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-        # CMake picks the launchers up from the environment (3.17+). Passing them as -D flags does
-        # not work here: colcon's --cmake-args is last-wins, so the caller's own --cmake-args drops
-        # them.
-        "CMAKE_C_COMPILER_LAUNCHER=ccache" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-        "CMAKE_CXX_COMPILER_LAUNCHER=ccache" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+        bash "${GITHUB_ACTION_PATH//\\//}/../scripts/configure-ccache.sh"
 
     # Restore and save are separate steps rather than one actions/cache: its post step re-evaluates
     # `path`, and inside a composite action the steps context it needs is gone by then, so the save
     # is skipped with only "Input required and not supplied: path" in the log.
     - name: Restore cache
-      if: inputs.ccache-enabled == 'true'
+      if: steps.ccache.outputs.dir != ''
       uses: actions/cache/restore@v4
       with:
         path: ${{ steps.ccache.outputs.dir }}
         key: ${{ steps.ccache.outputs.key }}
         restore-keys: ${{ steps.ccache.outputs.restore_key }}
 
-    # ccache keeps its counters inside CCACHE_DIR, which the restore above has just repopulated, so
-    # without this a `ccache -s` afterwards reports the previous run's misses alongside this run's
-    # hits and a fully cached build reads as roughly 50%.
+    # Counters live inside CCACHE_DIR, which the restore just repopulated, so zero them to make the
+    # statistics below describe this job alone. See the README, "Reading the numbers".
     - name: Zero ccache statistics
-      if: inputs.ccache-enabled == 'true'
-      shell: pwsh
+      if: steps.ccache.outputs.dir != ''
+      shell: bash
       run: ccache -z
 
     - name: Build upstream workspace
@@ -101,11 +86,16 @@ runs:
         colcon test-result --verbose
         if %ERRORLEVEL% GEQ 1 exit 1
 
+    - name: Report ccache statistics
+      if: ${{ !cancelled() && steps.ccache.outputs.dir != '' }}
+      shell: bash
+      run: ccache -s
+
     # Runs after a failed build too: a partially warmed cache is still worth keeping. The dir test
     # covers a failure before Configure ccache, where there is nothing to save and no key to save it
     # under.
     - name: Save cache
-      if: ${{ !cancelled() && inputs.ccache-enabled == 'true' && steps.ccache.outputs.dir != '' }}
+      if: ${{ !cancelled() && steps.ccache.outputs.dir != '' }}
       uses: actions/cache/save@v4
       with:
         path: ${{ steps.ccache.outputs.dir }}

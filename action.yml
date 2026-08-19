@@ -14,6 +14,10 @@ inputs:
     description: "Enable/Disable ccache (optional)"
     required: false
     default: 'true'
+  ccache-maxsize:
+    description: "Cap on the size of the ccache directory (optional)"
+    required: false
+    default: '1G'
   rosdep-enabled:
     description: "Indicate if rosdep should be used (optional)"
     required: false
@@ -71,6 +75,7 @@ runs:
             "before-script":       ${{ toJSON(inputs.before-script) }},
             "ccache-prefix":       ${{ toJSON(inputs.ccache-prefix) }},
             "ccache-enabled":      ${{ toJSON(inputs.ccache-enabled) }},
+            "ccache-maxsize":      ${{ toJSON(inputs.ccache-maxsize) }},
             "rosdep-enabled":      ${{ toJSON(inputs.rosdep-enabled) }},
             "rosdep-install-args": ${{ toJSON(inputs.rosdep-install-args) }},
             "add-ros-ppa":         ${{ toJSON(inputs.add-ros-ppa) }},
@@ -95,6 +100,7 @@ runs:
             "before-script":       ${{ toJSON(inputs.before-script) }},
             "ccache-prefix":       ${{ toJSON(inputs.ccache-prefix) }},
             "ccache-enabled":      ${{ toJSON(inputs.ccache-enabled) }},
+            "ccache-maxsize":      ${{ toJSON(inputs.ccache-maxsize) }},
             "rosdep-enabled":      ${{ toJSON(inputs.rosdep-enabled) }},
             "rosdep-install-args": ${{ toJSON(inputs.rosdep-install-args) }},
             "add-ros-ppa":         ${{ toJSON(inputs.add-ros-ppa) }},
@@ -119,6 +125,7 @@ runs:
             "before-script":       ${{ toJSON(inputs.before-script) }},
             "ccache-prefix":       ${{ toJSON(inputs.ccache-prefix) }},
             "ccache-enabled":      ${{ toJSON(inputs.ccache-enabled) }},
+            "ccache-maxsize":      ${{ toJSON(inputs.ccache-maxsize) }},
             "rosdep-enabled":      ${{ toJSON(inputs.rosdep-enabled) }},
             "rosdep-install-args": ${{ toJSON(inputs.rosdep-install-args) }},
             "add-ros-ppa":         ${{ toJSON(inputs.add-ros-ppa) }},
