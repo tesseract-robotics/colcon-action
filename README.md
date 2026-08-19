@@ -35,8 +35,8 @@ it, and runs the tests. Every other input keeps its default; see [Inputs](#input
 
 ## How it works
 
-1. Installs a toolchain (cmake, curl, git, python3) and colcon, and adds the ROS 2 apt repository
-   when `add-ros-ppa` is set.
+1. Makes sure a toolchain (cmake, curl, git, python3) is present, installing only what the runner
+   is missing, installs colcon, and adds the ROS 2 apt repository when `add-ros-ppa` is set.
 2. When `vcs-file` is set, imports it into `$GITHUB_WORKSPACE/upstream_ws/src`, installs its
    dependencies with `rosdep`, and builds it with `upstream-args`. An empty `vcs-file` skips the
    upstream workspace entirely.
