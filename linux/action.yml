@@ -27,8 +27,19 @@ runs:
     - name: Install base deps
       shell: bash
       run: |
-        $SUDO apt update -y -qq
-        $SUDO apt install -y cmake curl git python3 python3-pip
+        # Only what is absent, and the refresh only when something is: an image that already ships
+        # these needs no package lists yet, and apt would otherwise install its own cmake behind one
+        # that is already earlier in PATH.
+        missing=()
+        for cmd in cmake curl git python3; do
+          command -v "$cmd" > /dev/null 2>&1 || missing+=("$cmd")
+        done
+        # Separate because this is the one entry whose command and providing package differ.
+        command -v pip3 > /dev/null 2>&1 || missing+=(python3-pip)
+        if [ ${#missing[@]} -gt 0 ]; then
+          $SUDO apt update -y -qq
+          $SUDO apt install -y "${missing[@]}"
+        fi
 
     - name: Install ROS/Colcon PPA
       if: inputs.add-ros-ppa == 'true'
