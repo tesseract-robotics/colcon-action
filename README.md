@@ -21,7 +21,8 @@ jobs:
         with:
           path: target_ws/src/my_repo
 
-      - uses: tesseract-robotics/colcon-action@v15
+      # @main is the current action. Pin a release tag in a workflow you depend on.
+      - uses: tesseract-robotics/colcon-action@main
         with:
           target-path: target_ws/src
           vcs-file: my_repo/dependencies.repos
@@ -32,6 +33,11 @@ jobs:
 
 This builds an upstream workspace from `my_repo/dependencies.repos`, builds `target_ws` against
 it, and runs the tests. Every other input keeps its default; see [Inputs](#inputs).
+
+The example uses `@main` so that it always shows the current action. Pin a
+[release tag](https://github.com/tesseract-robotics/colcon-action/releases) in a workflow you
+depend on: on `@main` the action changes under the workflow without a commit on your side, and a
+build that passed yesterday can fail today.
 
 ## How it works
 
