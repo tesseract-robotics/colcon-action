@@ -45,7 +45,10 @@ runs:
       if: inputs.add-ros-ppa == 'true'
       shell: bash
       run: |
-        $SUDO curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
+        # -f so that an HTTP error fails here. Without it curl writes the error page into the
+        # keyring and exits 0, and the first sign of trouble is an apt signature error against
+        # packages.ros.org, which points at the repository rather than at the key.
+        $SUDO curl -sSLf https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
         echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | $SUDO tee /etc/apt/sources.list.d/ros2.list > /dev/null
 
     - name: Install colcon deps
