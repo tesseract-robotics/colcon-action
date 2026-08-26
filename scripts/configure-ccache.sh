@@ -57,6 +57,9 @@ fi
 {
   echo "CCACHE_DIR=$dir"
   echo "CCACHE_MAXSIZE=$INPUT_CCACHE_MAXSIZE"
+  # ccache's default is mtime, which a runner image rebuild changes even when the compiler version
+  # does not, voiding the whole cache after a rotation.
+  echo "CCACHE_COMPILERCHECK=content"
   # CMake picks the launchers up from the environment (3.17+). Passing them as -D flags does not
   # work here: colcon's --cmake-args is last-wins, so the caller's own --cmake-args drops them.
   echo "CMAKE_C_COMPILER_LAUNCHER=ccache"

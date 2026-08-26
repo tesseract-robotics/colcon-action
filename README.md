@@ -148,6 +148,14 @@ pull request writes is visible to that pull request alone. A workflow triggered 
 `pull_request` therefore never fills a cache any other run can read, and every pull request
 starts cold however well the keys are chosen. Trigger it on pushes to the default branch as well.
 
+### An image rotation does not empty the cache
+
+The action sets `CCACHE_COMPILERCHECK=content`, so the compiler is identified by its contents.
+ccache's own default identifies it by size and modification time, both of which a hosted runner
+image rebuild changes even when the compiler version is untouched — every entry written under the
+previous image would miss, on a rotation nothing in the run reports. Jobs that run in a container
+take their compiler from the pinned image and are unaffected either way.
+
 ### Sizing `ccache-maxsize`
 
 GitHub gives each repository a 10 GB cache budget, shared with every other cache and evicted by
